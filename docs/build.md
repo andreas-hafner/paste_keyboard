@@ -23,6 +23,44 @@ Wichtig:
 - Das Release-Asset heisst `PasteKeyboard-windows.zip`.
 - Die Endanwender-Anleitung wird als `docs/enduser.md` aus dem aktuellen Commit an das Release angehaengt.
 
+## Releases und Versionierung
+
+Dieses Projekt verwendet Semantic Versioning (SemVer).
+
+Regeln:
+
+- `MAJOR` fuer inkompatible Aenderungen
+- `MINOR` fuer neue, rueckwaertskompatible Funktionen
+- `PATCH` fuer Bugfixes und kleine Korrekturen
+
+Beispiele:
+
+- `0.1.1` fuer einen reinen Fix-Release
+- `0.2.0` fuer neue Funktionen ohne Breaking Changes
+- `1.0.0` fuer die erste stabile Hauptversion
+
+Release-Ablauf:
+
+1. Die Versionsnummer in `pyproject.toml` anheben.
+2. Die Aenderung committen und nach `main` pushen.
+3. Das Release mit passendem Tag erstellen.
+4. GitHub Actions baut danach automatisch die Windows-Datei und haengt die Release-Assets an.
+
+Beispiel:
+
+```bash
+git add pyproject.toml
+git commit -m "release: bump version to 0.1.1"
+git push origin main
+gh release create v0.1.1 --title "v0.1.1" --notes "Bugfix release."
+```
+
+Wichtig:
+
+- Tag und Projektversion muessen zusammenpassen.
+- Wenn in `pyproject.toml` `0.1.1` steht, sollte das Release-Tag `v0.1.1` sein.
+- Das Release laedt aktuell `PasteKeyboard-windows.zip` und `enduser.md` hoch.
+
 ## Voraussetzungen
 
 - Windows

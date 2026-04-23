@@ -15,6 +15,7 @@
 - `Zwischenablage tippen` akzeptiert nur Text und ist auf `1000` Zeichen pro Ausloesung begrenzt
 - Einstellungen werden unter `%APPDATA%\\PasteKeyboard\\settings.json` gespeichert
 - GitHub Actions baut Release- und CI-Artefakte fuer Windows
+- Releases folgen Semantic Versioning; Details stehen in der Build-/CI-Doku
 
 ## Schnellstart
 
