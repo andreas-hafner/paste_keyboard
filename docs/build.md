@@ -13,7 +13,7 @@ Ablauf:
 1. Bei jedem Push und bei jedem Pull Request startet ein Build auf `windows-latest`.
 2. Der Runner fuehrt die Unit-Tests aus und baut anschliessend mit `PyInstaller`.
 3. Die erzeugte EXE wird als ZIP-Datei verpackt und als Workflow-Artefakt hochgeladen.
-4. Wenn ein GitHub Release veroeffentlicht wird, wird das ZIP zusaetzlich als Release-Asset angehaengt.
+4. Wenn ein GitHub Release veroeffentlicht wird, werden das ZIP und die aktuelle Endanwender-Anleitung als Release-Assets angehaengt.
 
 Wichtig:
 
@@ -21,6 +21,7 @@ Wichtig:
 - Der Release-Upload reagiert auf veroeffentlichte Releases, nicht nur auf Tags.
 - Fuer das Hochladen wird der eingebaute `GITHUB_TOKEN` mit `contents: write` verwendet.
 - Das Release-Asset heisst `PasteKeyboard-windows.zip`.
+- Die Endanwender-Anleitung wird als `docs/enduser.md` aus dem aktuellen Commit an das Release angehaengt.
 
 ## Voraussetzungen
 

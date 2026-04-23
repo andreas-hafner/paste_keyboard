@@ -47,3 +47,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ github.event.release.tag_name }}" dist/PasteKeyboard-windows.zip --clobber
+
+      - name: Upload enduser guide
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" docs/enduser.md --clobber
