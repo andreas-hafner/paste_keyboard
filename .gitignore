@@ -11,5 +11,6 @@ state/settings.json
 state/test-settings-invalid.json
 state/test-settings-save.json
 state/test_tmp/
+tests/_tmp/
 
 PasteKeyboard.spec
