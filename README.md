@@ -14,6 +14,7 @@
 - Eingabe aus Zwischenablage oder aus dem Test-/Vorschautext
 - `Zwischenablage tippen` akzeptiert nur Text und ist auf `1000` Zeichen pro Ausloesung begrenzt
 - Einstellungen werden unter `%APPDATA%\\PasteKeyboard\\settings.json` gespeichert
+- GitHub Actions baut Release- und CI-Artefakte fuer Windows
 
 ## Schnellstart
 
@@ -39,7 +40,7 @@ Hinweis:
 
 - [Endanwender-Anleitung fuer die EXE](docs/enduser.md)
 - [Bedienungsanleitung](docs/usage.md)
-- [Windows-Build-Anleitung](docs/build.md)
+- [Build- und CI/CD-Anleitung](docs/build.md)
 
 ## Tests
 
