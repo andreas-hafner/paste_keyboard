@@ -1,0 +1,7 @@
+{
+  "hotkey": "Ctrl+Alt+Esc",
+  "layout_id": "de-DE",
+  "start_delay_ms": 250,
+  "key_delay_ms": 25,
+  "skip_unsupported": false
+}

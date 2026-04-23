@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.venv/
+build/
+dist/
+
+state/settings.json
+state/test-settings-invalid.json
+state/test-settings-save.json
+state/test_tmp/
+
+PasteKeyboard.spec
