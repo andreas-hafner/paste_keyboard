@@ -27,6 +27,8 @@ Minimiert starten, z. B. fuer eine Windows-Autostart-Verknuepfung:
 python main.py --minimized
 ```
 
+Mit `--minimized` startet die App direkt im Windows-Infobereich. Das Hauptfenster erscheint nicht als normaler Taskleisten-Button; geoeffnet und beendet wird die App ueber das Tray-Symbol.
+
 Bei der gebauten EXE:
 
 ```text

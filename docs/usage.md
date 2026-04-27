@@ -44,6 +44,8 @@ Fuer Windows-Autostart kann die App minimiert gestartet werden:
 python main.py --minimized
 ```
 
+Dabei startet die App direkt im Windows-Infobereich. Das normale Schliessen oder Minimieren blendet nur das Hauptfenster aus; die App laeuft fuer den globalen Hotkey weiter. Ueber das Tray-Symbol kann das Fenster wieder geoeffnet oder die App beendet werden.
+
 Bei der gebauten EXE wird derselbe Parameter an die Verknuepfung angehaengt:
 
 ```text

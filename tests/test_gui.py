@@ -98,6 +98,39 @@ class GuiHotkeyTests(unittest.TestCase):
             [(delay_ms, app._minimize_window) for delay_ms in gui.MINIMIZE_RETRY_DELAYS_MS],
         )
 
+    def test_hide_window_from_taskbar_uses_toolwindow_style(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+
+        app._hide_window_from_taskbar()
+
+        app.root.attributes.assert_called_once_with("-toolwindow", True)
+
+    def test_close_hides_window_to_tray_instead_of_destroying(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        app.exiting = False
+
+        app._on_close()
+
+        app.root.withdraw.assert_called_once()
+        app.root.destroy.assert_not_called()
+
+    def test_exit_app_removes_tray_icon_and_closes_hotkey_listener(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        tray_icon = Mock()
+        app.tray_icon = tray_icon
+        app.hotkey_listener = Mock()
+        app.exiting = False
+
+        app._exit_app()
+
+        self.assertTrue(app.exiting)
+        tray_icon.remove.assert_called_once()
+        app.hotkey_listener.close.assert_called_once()
+        app.root.destroy.assert_called_once()
+
     def test_save_settings_keeps_active_hotkey_when_registration_fails(self) -> None:
         current_hotkey = parse_hotkey("Ctrl+Alt+V")
         app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)

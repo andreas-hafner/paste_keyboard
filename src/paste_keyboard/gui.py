@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ctypes
 import queue
 import threading
 import tkinter as tk
@@ -16,7 +15,6 @@ from .typing import TypingError, type_text
 HOTKEY_ID = 1
 MAX_CLIPBOARD_TEXT_CHARS = 1000
 MINIMIZE_RETRY_DELAYS_MS = (50, 250, 750)
-SW_FORCEMINIMIZE = 11
 APP_TITLE = "Paste Keyboard"
 TASKBAR_STATUS_MAX_CHARS = 96
 
@@ -27,12 +25,15 @@ class PasteKeyboardApp:
         self.root.title(APP_TITLE)
         self.root.geometry("760x520")
         self.root.minsize(680, 480)
+        self._hide_window_from_taskbar()
 
         self.settings = load_settings()
         self.hotkey_queue: queue.SimpleQueue[int] = queue.SimpleQueue()
         self.hotkey_listener: win32.HotkeyListener | None = None
         self.current_hotkey: ParsedHotkey | None = None
+        self.tray_icon: win32.TrayIcon | None = None
         self.typing_in_progress = False
+        self.exiting = False
 
         self.hotkey_var = tk.StringVar(value=self.settings.hotkey)
         self.layout_var = tk.StringVar(value=self.settings.layout_id)
@@ -43,8 +44,10 @@ class PasteKeyboardApp:
 
         self._build_ui()
         self._set_status("Bereit.")
+        self._setup_tray_icon()
         self._register_hotkey_from_form(initial=True)
         self._poll_hotkeys()
+        self.root.bind("<Unmap>", self._on_unmap)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         if start_minimized:
             self._schedule_minimized_start()
@@ -53,12 +56,52 @@ class PasteKeyboardApp:
         for delay_ms in MINIMIZE_RETRY_DELAYS_MS:
             self.root.after(delay_ms, self._minimize_window)
 
+    def _hide_window_from_taskbar(self) -> None:
+        try:
+            self.root.attributes("-toolwindow", True)
+        except tk.TclError:
+            pass
+
     def _minimize_window(self) -> None:
         self.root.update_idletasks()
-        self.root.state("iconic")
+        self._hide_to_tray()
+
+    def _setup_tray_icon(self) -> None:
         try:
-            ctypes.windll.user32.ShowWindowAsync(self.root.winfo_id(), SW_FORCEMINIMIZE)
-        except (AttributeError, tk.TclError, OSError):
+            self.tray_icon = win32.TrayIcon(
+                self.root.winfo_id(),
+                APP_TITLE,
+                lambda: self.root.after(0, self._show_from_tray),
+                lambda: self.root.after(0, self._exit_app),
+            )
+            self.tray_icon.add()
+        except (tk.TclError, win32.Win32Error):
+            self.tray_icon = None
+
+    def _on_unmap(self, _event: tk.Event) -> None:
+        if self.exiting:
+            return
+        try:
+            if self.root.state() == "iconic":
+                self.root.after(0, self._hide_to_tray)
+        except tk.TclError:
+            pass
+
+    def _hide_to_tray(self) -> None:
+        if self.exiting:
+            return
+        try:
+            self.root.withdraw()
+        except tk.TclError:
+            pass
+
+    def _show_from_tray(self) -> None:
+        try:
+            self.root.deiconify()
+            self.root.state("normal")
+            self.root.lift()
+            self.root.focus_force()
+        except tk.TclError:
             pass
 
     def _build_ui(self) -> None:
@@ -122,6 +165,8 @@ class PasteKeyboardApp:
             self.root.title(f"{APP_TITLE} - {taskbar_message}")
         else:
             self.root.title(APP_TITLE)
+        if getattr(self, "tray_icon", None) is not None:
+            self.tray_icon.update_tooltip(f"{APP_TITLE} - {taskbar_message}" if taskbar_message else APP_TITLE)
 
     def _taskbar_status_text(self, message: str) -> str:
         collapsed = " ".join(message.split())
@@ -347,6 +392,13 @@ class PasteKeyboardApp:
             self._set_status(error)
 
     def _on_close(self) -> None:
+        self._hide_to_tray()
+
+    def _exit_app(self) -> None:
+        self.exiting = True
+        if self.tray_icon is not None:
+            self.tray_icon.remove()
+            self.tray_icon = None
         if self.hotkey_listener is not None:
             self.hotkey_listener.close()
         self.root.destroy()
