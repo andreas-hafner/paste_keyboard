@@ -35,13 +35,15 @@ Das Script fuehrt standardmaessig aus:
 1. Unit-Tests
 2. PyInstaller-Build aus `PasteKeyboard.spec`
 3. Kopie nach `dist\PasteKeyboard.exe`
-4. Signatur mit SHA256 und DigiCert-Timestamp
-5. Signaturpruefung mit `signtool verify /pa /v`
+4. Signatur mit SHA256 und DigiCert-Timestamp, wenn ein Thumbprint uebergeben oder per Environment Variable gesetzt ist
+5. Signaturpruefung mit `signtool verify /pa /v`, wenn signiert wurde
 
 Ergebnis:
 
 - `dist\PasteKeyboard.exe`
 - Laufzeiteinstellungen werden unter `%APPDATA%\PasteKeyboard\settings.json` gespeichert
+
+Ohne Thumbprint wird der Build bewusst ohne Signatur abgeschlossen.
 
 ## Signing
 

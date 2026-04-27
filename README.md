@@ -76,7 +76,7 @@ python -m unittest discover -s tests -v
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Das erzeugt und signiert `dist\PasteKeyboard.exe`. Details stehen in [docs/build.md](docs/build.md).
+Das erzeugt `dist\PasteKeyboard.exe`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `PASTE_KEYBOARD_SIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
 
 ## Hinweise
 
