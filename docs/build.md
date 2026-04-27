@@ -56,11 +56,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Thumbprint "<SHA1-
 Oder setze ihn lokal als Environment Variable:
 
 ```powershell
-$env:PASTE_KEYBOARD_SIGN_THUMBPRINT = "<SHA1-Thumbprint>"
+$env:CODESIGN_THUMBPRINT = "<SHA1-Thumbprint>"
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Wenn weder `-Thumbprint` noch `PASTE_KEYBOARD_SIGN_THUMBPRINT` gesetzt ist, baut das Script die EXE ohne Signatur. Der direkte `signtool`-Aufruf entspricht:
+Wenn weder `-Thumbprint` noch `CODESIGN_THUMBPRINT` gesetzt ist, baut das Script die EXE ohne Signatur. Der direkte `signtool`-Aufruf entspricht:
 
 ```powershell
 signtool sign `

@@ -126,7 +126,7 @@ $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
 $EffectiveThumbprint = $Thumbprint
 if (-not $EffectiveThumbprint) {
-    $EffectiveThumbprint = $env:PASTE_KEYBOARD_SIGN_THUMBPRINT
+    $EffectiveThumbprint = $env:CODESIGN_THUMBPRINT
 }
 
 Assert-UnderRepo $BuildWorkPath
@@ -177,7 +177,7 @@ if (-not $SkipSigning -and $EffectiveThumbprint) {
     Write-Host "Verifying signature..."
     & $signtoolPath verify /pa /v $OutputPath
 } elseif (-not $SkipSigning) {
-    Write-Host "Skipping signing because no thumbprint was provided. Pass -Thumbprint or set PASTE_KEYBOARD_SIGN_THUMBPRINT."
+    Write-Host "Skipping signing because no thumbprint was provided. Pass -Thumbprint or set CODESIGN_THUMBPRINT."
 }
 
 Write-Host "Build finished successfully."
