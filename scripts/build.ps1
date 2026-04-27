@@ -68,6 +68,26 @@ function Find-SignTool {
     throw "signtool.exe was not found. Install Windows SDK or pass -SignTool <path>."
 }
 
+function Resolve-Thumbprint {
+    if ($Thumbprint) {
+        return $Thumbprint
+    }
+
+    $candidates = @(
+        $env:CODESIGN_THUMBPRINT,
+        [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "User"),
+        [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "Machine")
+    )
+
+    foreach ($candidate in $candidates) {
+        if ($candidate) {
+            return $candidate.Trim()
+        }
+    }
+
+    return ""
+}
+
 function Invoke-PyInstaller {
     param(
         [string]$WorkPath,
@@ -124,10 +144,7 @@ $OutputDir = Split-Path -Parent $OutputPath
 $BuildWorkPath = Resolve-RepoPath "build\script-work"
 $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
-$EffectiveThumbprint = $Thumbprint
-if (-not $EffectiveThumbprint) {
-    $EffectiveThumbprint = $env:CODESIGN_THUMBPRINT
-}
+$EffectiveThumbprint = Resolve-Thumbprint
 
 Assert-UnderRepo $BuildWorkPath
 Assert-UnderRepo $BuildDistPath
