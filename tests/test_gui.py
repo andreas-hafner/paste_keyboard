@@ -116,7 +116,7 @@ class GuiHotkeyTests(unittest.TestCase):
         app.root.withdraw.assert_called_once()
         app.root.destroy.assert_not_called()
 
-    def test_exit_app_removes_tray_icon_and_closes_hotkey_listener(self) -> None:
+    def test_exit_app_closes_tray_icon_and_closes_hotkey_listener(self) -> None:
         app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
         app.root = Mock()
         tray_icon = Mock()
@@ -127,9 +127,29 @@ class GuiHotkeyTests(unittest.TestCase):
         app._exit_app()
 
         self.assertTrue(app.exiting)
-        tray_icon.remove.assert_called_once()
+        tray_icon.close.assert_called_once()
         app.hotkey_listener.close.assert_called_once()
         app.root.destroy.assert_called_once()
+
+    def test_poll_tray_events_handles_show_and_exit(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        app.tray_queue = queue.SimpleQueue()
+        app._show_from_tray = Mock()
+        app.exiting = False
+
+        def exit_app() -> None:
+            app.exiting = True
+
+        app._exit_app = Mock(side_effect=exit_app)
+
+        app.tray_queue.put("show")
+        app.tray_queue.put("exit")
+        app._poll_tray_events()
+
+        app._show_from_tray.assert_called_once()
+        app._exit_app.assert_called_once()
+        app.root.after.assert_not_called()
 
     def test_save_settings_keeps_active_hotkey_when_registration_fails(self) -> None:
         current_hotkey = parse_hotkey("Ctrl+Alt+V")

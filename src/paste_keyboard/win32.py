@@ -5,6 +5,7 @@ import ctypes
 from ctypes import wintypes
 import threading
 import time
+import uuid
 
 
 if ctypes.sizeof(ctypes.c_void_p) == 8:
@@ -35,12 +36,11 @@ MOD_WIN = 0x0008
 PM_REMOVE = 0x0001
 WM_HOTKEY = 0x0312
 WM_QUIT = 0x0012
+WM_DESTROY = 0x0002
 WM_APP = 0x8000
 WM_LBUTTONDBLCLK = 0x0203
 WM_LBUTTONUP = 0x0202
 WM_RBUTTONUP = 0x0205
-
-GWLP_WNDPROC = -4
 
 IDI_APPLICATION = 32512
 
@@ -194,6 +194,21 @@ class NOTIFYICONDATAW(ctypes.Structure):
         ("hBalloonIcon", wintypes.HICON),
     ]
 
+
+class WNDCLASSW(ctypes.Structure):
+    _fields_ = [
+        ("style", wintypes.UINT),
+        ("lpfnWndProc", ctypes.c_void_p),
+        ("cbClsExtra", ctypes.c_int),
+        ("cbWndExtra", ctypes.c_int),
+        ("hInstance", wintypes.HINSTANCE),
+        ("hIcon", wintypes.HICON),
+        ("hCursor", wintypes.HANDLE),
+        ("hbrBackground", wintypes.HANDLE),
+        ("lpszMenuName", wintypes.LPCWSTR),
+        ("lpszClassName", wintypes.LPCWSTR),
+    ]
+
 user32.LoadKeyboardLayoutW.argtypes = [wintypes.LPCWSTR, wintypes.UINT]
 user32.LoadKeyboardLayoutW.restype = wintypes.HKL
 user32.VkKeyScanExW.argtypes = [wintypes.WCHAR, wintypes.HKL]
@@ -218,6 +233,18 @@ user32.GetAsyncKeyState.argtypes = [ctypes.c_int]
 user32.GetAsyncKeyState.restype = ctypes.c_short
 user32.LoadIconW.argtypes = [wintypes.HINSTANCE, wintypes.LPCWSTR]
 user32.LoadIconW.restype = wintypes.HICON
+user32.CreateIcon.argtypes = [
+    wintypes.HINSTANCE,
+    ctypes.c_int,
+    ctypes.c_int,
+    wintypes.BYTE,
+    wintypes.BYTE,
+    ctypes.POINTER(wintypes.BYTE),
+    ctypes.POINTER(wintypes.BYTE),
+]
+user32.CreateIcon.restype = wintypes.HICON
+user32.DestroyIcon.argtypes = [wintypes.HICON]
+user32.DestroyIcon.restype = wintypes.BOOL
 user32.SetForegroundWindow.argtypes = [wintypes.HWND]
 user32.SetForegroundWindow.restype = wintypes.BOOL
 user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
@@ -240,15 +267,38 @@ user32.DestroyMenu.argtypes = [wintypes.HMENU]
 user32.DestroyMenu.restype = wintypes.BOOL
 user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 user32.PostMessageW.restype = wintypes.BOOL
+user32.DispatchMessageW.argtypes = [ctypes.POINTER(MSG)]
+user32.DispatchMessageW.restype = LONG_PTR
 WNDPROC = ctypes.WINFUNCTYPE(LONG_PTR, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
-user32.CallWindowProcW.argtypes = [WNDPROC, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
-user32.CallWindowProcW.restype = LONG_PTR
-user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, LONG_PTR]
-user32.SetWindowLongPtrW.restype = LONG_PTR
+user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+user32.DefWindowProcW.restype = LONG_PTR
+user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASSW)]
+user32.RegisterClassW.restype = wintypes.ATOM
+user32.UnregisterClassW.argtypes = [wintypes.LPCWSTR, wintypes.HINSTANCE]
+user32.UnregisterClassW.restype = wintypes.BOOL
+user32.CreateWindowExW.argtypes = [
+    wintypes.DWORD,
+    wintypes.LPCWSTR,
+    wintypes.LPCWSTR,
+    wintypes.DWORD,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    wintypes.HWND,
+    wintypes.HMENU,
+    wintypes.HINSTANCE,
+    wintypes.LPVOID,
+]
+user32.CreateWindowExW.restype = wintypes.HWND
+user32.DestroyWindow.argtypes = [wintypes.HWND]
+user32.DestroyWindow.restype = wintypes.BOOL
 shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 shell32.Shell_NotifyIconW.restype = wintypes.BOOL
 kernel32.GetCurrentThreadId.argtypes = []
 kernel32.GetCurrentThreadId.restype = wintypes.DWORD
+kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+kernel32.GetModuleHandleW.restype = wintypes.HINSTANCE
 
 
 class Win32Error(RuntimeError):
@@ -303,44 +353,115 @@ class HotkeyListener:
 
 
 class TrayIcon:
-    def __init__(self, hwnd: int, tooltip: str, on_show, on_exit) -> None:
-        self.hwnd = wintypes.HWND(hwnd)
+    def __init__(self, tooltip: str, callback) -> None:
         self.tooltip = tooltip
-        self.on_show = on_show
-        self.on_exit = on_exit
+        self.callback = callback
+        self.hwnd: wintypes.HWND | None = None
+        self._thread: threading.Thread | None = None
+        self._thread_id: int | None = None
+        self._hinstance: wintypes.HINSTANCE | None = None
+        self._class_name = f"PasteKeyboardTray-{uuid.uuid4()}"
+        self._ready = threading.Event()
+        self._startup_error: Exception | None = None
         self._icon_added = False
-        self._old_wndproc: WNDPROC | None = None
+        self._icon_handle: wintypes.HICON | None = None
         self._wndproc = WNDPROC(self._handle_window_message)
 
-    def add(self) -> None:
-        if self._icon_added:
+    def start(self) -> None:
+        if self._thread is not None:
+            return
+        self._thread = threading.Thread(target=self._run, name="TrayIcon", daemon=True)
+        self._thread.start()
+        self._ready.wait(timeout=5)
+        if self._startup_error is not None:
+            raise self._startup_error
+        if self.hwnd is None:
+            raise Win32Error("Tray-Fenster konnte nicht gestartet werden.")
+
+    def _run(self) -> None:
+        self._thread_id = int(kernel32.GetCurrentThreadId())
+        self._hinstance = kernel32.GetModuleHandleW(None)
+        window_class = WNDCLASSW()
+        window_class.lpfnWndProc = ctypes.cast(self._wndproc, ctypes.c_void_p).value
+        window_class.hInstance = self._hinstance
+        window_class.lpszClassName = self._class_name
+
+        if not user32.RegisterClassW(ctypes.byref(window_class)):
+            self._startup_error = Win32Error("Tray-Fensterklasse konnte nicht registriert werden.")
+            self._ready.set()
             return
 
-        previous = user32.SetWindowLongPtrW(self.hwnd, GWLP_WNDPROC, ctypes.cast(self._wndproc, ctypes.c_void_p).value)
-        if not previous:
-            raise Win32Error("Tray-Fensterprozedur konnte nicht registriert werden.")
-        self._old_wndproc = WNDPROC(previous)
+        self.hwnd = user32.CreateWindowExW(
+            0,
+            self._class_name,
+            self.tooltip,
+            0,
+            0,
+            0,
+            0,
+            0,
+            None,
+            None,
+            self._hinstance,
+            None,
+        )
+        if not self.hwnd:
+            self._startup_error = Win32Error("Tray-Fenster konnte nicht erstellt werden.")
+            user32.UnregisterClassW(self._class_name, self._hinstance)
+            self._ready.set()
+            return
 
         if not shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(self._notify_data())):
-            self._restore_wndproc()
-            raise Win32Error("Tray-Symbol konnte nicht erstellt werden.")
+            self._startup_error = Win32Error("Tray-Symbol konnte nicht erstellt werden.")
+            user32.DestroyWindow(self.hwnd)
+            user32.UnregisterClassW(self._class_name, self._hinstance)
+            self.hwnd = None
+            self._ready.set()
+            return
+
         self._icon_added = True
+        self._ready.set()
+
+        message = MSG()
+        while user32.GetMessageW(ctypes.byref(message), None, 0, 0) != 0:
+            user32.DispatchMessageW(ctypes.byref(message))
+
+        self._delete_icon()
+        self._destroy_icon_handle()
+        if self.hwnd:
+            user32.DestroyWindow(self.hwnd)
+            self.hwnd = None
+        if self._hinstance:
+            user32.UnregisterClassW(self._class_name, self._hinstance)
+            self._hinstance = None
 
     def remove(self) -> None:
-        if self._icon_added:
-            shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._notify_data()))
-            self._icon_added = False
-        self._restore_wndproc()
+        self.close()
+
+    def close(self) -> None:
+        if self.hwnd is not None:
+            self._delete_icon()
+        if self._thread_id is not None:
+            user32.PostThreadMessageW(self._thread_id, WM_QUIT, 0, 0)
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+        self._thread = None
+        self._thread_id = None
 
     def update_tooltip(self, tooltip: str) -> None:
         self.tooltip = tooltip
-        if self._icon_added:
+        if self._icon_added and self.hwnd is not None:
             shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(self._notify_data()))
 
-    def _restore_wndproc(self) -> None:
-        if self._old_wndproc is not None:
-            user32.SetWindowLongPtrW(self.hwnd, GWLP_WNDPROC, ctypes.cast(self._old_wndproc, ctypes.c_void_p).value)
-            self._old_wndproc = None
+    def _delete_icon(self) -> None:
+        if self._icon_added and self.hwnd is not None:
+            shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._notify_data()))
+            self._icon_added = False
+
+    def _destroy_icon_handle(self) -> None:
+        if self._icon_handle is not None:
+            user32.DestroyIcon(self._icon_handle)
+            self._icon_handle = None
 
     def _notify_data(self) -> NOTIFYICONDATAW:
         data = NOTIFYICONDATAW()
@@ -349,23 +470,29 @@ class TrayIcon:
         data.uID = TRAY_ICON_ID
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
         data.uCallbackMessage = TRAY_CALLBACK_MESSAGE
-        data.hIcon = user32.LoadIconW(None, ctypes.cast(ctypes.c_void_p(IDI_APPLICATION), wintypes.LPCWSTR))
+        data.hIcon = self._app_icon()
         data.szTip = self.tooltip[:127]
         return data
+
+    def _app_icon(self) -> wintypes.HICON:
+        if self._icon_handle is None:
+            self._icon_handle = create_app_icon()
+        return self._icon_handle
 
     def _handle_window_message(self, hwnd, message, w_param, l_param):
         if message == TRAY_CALLBACK_MESSAGE:
             event = int(l_param)
             if event in {WM_LBUTTONDBLCLK, WM_LBUTTONUP}:
-                self.on_show()
+                self.callback("show")
                 return 0
             if event == WM_RBUTTONUP:
                 self._show_menu()
                 return 0
 
-        if self._old_wndproc is not None:
-            return user32.CallWindowProcW(self._old_wndproc, hwnd, message, w_param, l_param)
-        return 0
+        if message == WM_DESTROY:
+            return 0
+
+        return user32.DefWindowProcW(hwnd, message, w_param, l_param)
 
     def _show_menu(self) -> None:
         menu = user32.CreatePopupMenu()
@@ -389,12 +516,43 @@ class TrayIcon:
                 None,
             )
             if command == TRAY_COMMAND_SHOW:
-                self.on_show()
+                self.callback("show")
             elif command == TRAY_COMMAND_EXIT:
-                self.on_exit()
+                self.callback("exit")
             user32.PostMessageW(self.hwnd, 0, 0, 0)
         finally:
             user32.DestroyMenu(menu)
+
+
+def create_app_icon(size: int = 32) -> wintypes.HICON:
+    pixels = bytearray()
+    keyboard_left = size // 5
+    keyboard_right = size - keyboard_left
+    keyboard_top = size // 3
+    keyboard_bottom = size - size // 4
+
+    for y in range(size):
+        for x in range(size):
+            r, g, b, a = 0x18, 0x7F, 0xA7, 0xFF
+            if keyboard_left <= x < keyboard_right and keyboard_top <= y < keyboard_bottom:
+                r, g, b = 0xF4, 0xF7, 0xFB
+                if (
+                    x in {keyboard_left, keyboard_right - 1}
+                    or y in {keyboard_top, keyboard_bottom - 1}
+                    or (y == keyboard_top + 4 and keyboard_left + 3 <= x < keyboard_right - 3)
+                    or ((y - keyboard_top) % 5 == 0 and (x - keyboard_left) % 5 == 0)
+                ):
+                    r, g, b = 0x0F, 0x3F, 0x56
+            elif x >= size - size // 3 and y < size // 3 and x - y > size // 4:
+                r, g, b = 0xFF, 0xC8, 0x34
+            pixels.extend((b, g, r, a))
+
+    and_mask = (wintypes.BYTE * ((size * size) // 8))()
+    xor_mask = (wintypes.BYTE * len(pixels)).from_buffer_copy(bytes(pixels))
+    icon = user32.CreateIcon(None, size, size, 1, 32, and_mask, xor_mask)
+    if not icon:
+        return user32.LoadIconW(None, ctypes.cast(ctypes.c_void_p(IDI_APPLICATION), wintypes.LPCWSTR))
+    return icon
 
 
 @dataclass(frozen=True, slots=True)

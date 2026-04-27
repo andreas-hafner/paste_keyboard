@@ -68,24 +68,33 @@ function Find-SignTool {
     throw "signtool.exe was not found. Install Windows SDK or pass -SignTool <path>."
 }
 
-function Resolve-Thumbprint {
+function Resolve-ThumbprintConfig {
     if ($Thumbprint) {
-        return $Thumbprint
-    }
-
-    $candidates = @(
-        $env:CODESIGN_THUMBPRINT,
-        [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "User"),
-        [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "Machine")
-    )
-
-    foreach ($candidate in $candidates) {
-        if ($candidate) {
-            return $candidate.Trim()
+        return @{
+            Value = ($Thumbprint -replace "\s", "")
+            Source = "-Thumbprint"
         }
     }
 
-    return ""
+    $candidates = @(
+        @{ Value = $env:CODESIGN_THUMBPRINT; Source = "process environment CODESIGN_THUMBPRINT" },
+        @{ Value = [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "User"); Source = "user environment CODESIGN_THUMBPRINT" },
+        @{ Value = [Environment]::GetEnvironmentVariable("CODESIGN_THUMBPRINT", "Machine"); Source = "machine environment CODESIGN_THUMBPRINT" }
+    )
+
+    foreach ($candidate in $candidates) {
+        if ($candidate.Value) {
+            return @{
+                Value = ($candidate.Value -replace "\s", "")
+                Source = $candidate.Source
+            }
+        }
+    }
+
+    return @{
+        Value = ""
+        Source = ""
+    }
 }
 
 function Invoke-PyInstaller {
@@ -144,7 +153,8 @@ $OutputDir = Split-Path -Parent $OutputPath
 $BuildWorkPath = Resolve-RepoPath "build\script-work"
 $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
-$EffectiveThumbprint = Resolve-Thumbprint
+$ThumbprintConfig = Resolve-ThumbprintConfig
+$EffectiveThumbprint = $ThumbprintConfig.Value
 
 Assert-UnderRepo $BuildWorkPath
 Assert-UnderRepo $BuildDistPath
@@ -189,7 +199,7 @@ Write-Host "Built: $OutputPath"
 
 if (-not $SkipSigning -and $EffectiveThumbprint) {
     $signtoolPath = Find-SignTool
-    Write-Host "Signing with certificate thumbprint $EffectiveThumbprint..."
+    Write-Host "Signing with certificate thumbprint from $($ThumbprintConfig.Source)."
     & $signtoolPath sign /sha1 $EffectiveThumbprint /fd SHA256 /tr $TimestampUrl /td SHA256 $OutputPath
     Write-Host "Verifying signature..."
     & $signtoolPath verify /pa /v $OutputPath

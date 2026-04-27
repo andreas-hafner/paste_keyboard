@@ -29,6 +29,7 @@ class PasteKeyboardApp:
 
         self.settings = load_settings()
         self.hotkey_queue: queue.SimpleQueue[int] = queue.SimpleQueue()
+        self.tray_queue: queue.SimpleQueue[str] = queue.SimpleQueue()
         self.hotkey_listener: win32.HotkeyListener | None = None
         self.current_hotkey: ParsedHotkey | None = None
         self.tray_icon: win32.TrayIcon | None = None
@@ -47,6 +48,7 @@ class PasteKeyboardApp:
         self._setup_tray_icon()
         self._register_hotkey_from_form(initial=True)
         self._poll_hotkeys()
+        self._poll_tray_events()
         self.root.bind("<Unmap>", self._on_unmap)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         if start_minimized:
@@ -69,12 +71,10 @@ class PasteKeyboardApp:
     def _setup_tray_icon(self) -> None:
         try:
             self.tray_icon = win32.TrayIcon(
-                self.root.winfo_id(),
                 APP_TITLE,
-                lambda: self.root.after(0, self._show_from_tray),
-                lambda: self.root.after(0, self._exit_app),
+                self.tray_queue.put,
             )
-            self.tray_icon.add()
+            self.tray_icon.start()
         except (tk.TclError, win32.Win32Error):
             self.tray_icon = None
 
@@ -103,6 +103,22 @@ class PasteKeyboardApp:
             self.root.focus_force()
         except tk.TclError:
             pass
+
+    def _poll_tray_events(self) -> None:
+        if self.exiting:
+            return
+        while True:
+            try:
+                event = self.tray_queue.get_nowait()
+            except queue.Empty:
+                break
+            if event == "show":
+                self._show_from_tray()
+            elif event == "exit":
+                self._exit_app()
+                return
+        if not self.exiting:
+            self.root.after(100, self._poll_tray_events)
 
     def _build_ui(self) -> None:
         self.root.columnconfigure(0, weight=1)
@@ -397,7 +413,7 @@ class PasteKeyboardApp:
     def _exit_app(self) -> None:
         self.exiting = True
         if self.tray_icon is not None:
-            self.tray_icon.remove()
+            self.tray_icon.close()
             self.tray_icon = None
         if self.hotkey_listener is not None:
             self.hotkey_listener.close()

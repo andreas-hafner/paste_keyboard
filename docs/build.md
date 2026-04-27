@@ -61,6 +61,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
 In den Windows-Umgebungsvariablen muss `CODESIGN_THUMBPRINT` fuer den Benutzer gesetzt sein, der den Build ausfuehrt. Wenn der Build in einem anderen Benutzer- oder Systemkontext laeuft, setze die Variable als Systemvariable oder uebergib den Wert direkt mit `-Thumbprint`.
+Leerzeichen im Thumbprint werden vom Build-Script entfernt.
 
 Wenn weder `-Thumbprint` noch `CODESIGN_THUMBPRINT` gesetzt ist, baut das Script die EXE ohne Signatur. Der direkte `signtool`-Aufruf entspricht:
 
