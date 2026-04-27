@@ -45,30 +45,28 @@ Ergebnis:
 
 ## Signing
 
-Der Standard-Thumbprint im Script ist:
-
-```text
-8C453DFBCB73F3653941B6D058E8782089B5B9E3
-```
-
-Das entspricht diesem Signaturaufruf:
-
-```powershell
-$Thumbprint = "8C453DFBCB73F3653941B6D058E8782089B5B9E3"
-$File = "C:\data\01_repos\paste_keyboard\dist\PasteKeyboard.exe"
-
-signtool sign `
-  /sha1 $Thumbprint `
-  /fd SHA256 `
-  /tr http://timestamp.digicert.com `
-  /td SHA256 `
-  "$File"
-```
-
-Einen anderen Thumbprint uebergibst du so:
+Der Zertifikats-Thumbprint wird nicht im Repository gespeichert. Uebergib ihn beim Build per Parameter:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Thumbprint "<SHA1-Thumbprint>"
+```
+
+Oder setze ihn lokal als Environment Variable:
+
+```powershell
+$env:PASTE_KEYBOARD_SIGN_THUMBPRINT = "<SHA1-Thumbprint>"
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
+```
+
+Wenn weder `-Thumbprint` noch `PASTE_KEYBOARD_SIGN_THUMBPRINT` gesetzt ist, baut das Script die EXE ohne Signatur. Der direkte `signtool`-Aufruf entspricht:
+
+```powershell
+signtool sign `
+  /sha1 "<SHA1-Thumbprint>" `
+  /fd SHA256 `
+  /tr http://timestamp.digicert.com `
+  /td SHA256 `
+  "dist\PasteKeyboard.exe"
 ```
 
 Wenn `signtool.exe` nicht im `PATH` liegt:
@@ -108,7 +106,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SkipTests
 Verifiziert:
 
 - EXE wurde erzeugt: `dist\PasteKeyboard.exe`
-- EXE wurde mit dem Thumbprint `8C453DFBCB73F3653941B6D058E8782089B5B9E3` signiert
+- EXE wurde mit einem lokal bereitgestellten Zertifikats-Thumbprint signiert
 - Signatur wurde mit `signtool verify /pa /v` erfolgreich geprueft
 - Zeitstempel wurde ueber `http://timestamp.digicert.com` gesetzt
 - Nachlaufender Python-Testlauf: `python -m unittest discover -s tests -v`

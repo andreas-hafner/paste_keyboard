@@ -50,6 +50,24 @@ Bei der gebauten EXE wird derselbe Parameter an die Verknuepfung angehaengt:
 PasteKeyboard.exe --minimized
 ```
 
+## Windows-Autostart
+
+Autostart fuer die gebaute EXE einrichten:
+
+1. `Win+R` druecken.
+2. `shell:startup` eingeben und bestaetigen.
+3. Eine Verknuepfung zu `PasteKeyboard.exe` in den geoeffneten Autostart-Ordner legen.
+4. Die Eigenschaften der Verknuepfung oeffnen.
+5. Im Feld `Ziel` den Parameter `--minimized` hinter den EXE-Pfad setzen.
+
+Beispiel:
+
+```text
+"C:\Tools\PasteKeyboard\PasteKeyboard.exe" --minimized
+```
+
+Wichtig: Der Parameter steht ausserhalb der Anfuehrungszeichen. Nur der Pfad zur EXE wird in Anfuehrungszeichen gesetzt.
+
 ## Typischer Ablauf
 
 1. App mit `python main.py` starten.

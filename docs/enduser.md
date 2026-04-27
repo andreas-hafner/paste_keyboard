@@ -22,6 +22,22 @@ Fuer eine Windows-Autostart-Verknuepfung kann die App minimiert starten:
 PasteKeyboard.exe --minimized
 ```
 
+## Windows-Autostart einrichten
+
+1. `Win+R` druecken.
+2. `shell:startup` eingeben und bestaetigen.
+3. Eine Verknuepfung zu `PasteKeyboard.exe` in den geoeffneten Ordner legen.
+4. Rechtsklick auf die Verknuepfung, dann `Eigenschaften` oeffnen.
+5. Im Feld `Ziel` den Parameter `--minimized` hinter den EXE-Pfad setzen.
+
+Beispiel:
+
+```text
+"C:\Tools\PasteKeyboard\PasteKeyboard.exe" --minimized
+```
+
+Der Parameter muss ausserhalb der Anfuehrungszeichen stehen. Beim naechsten Windows-Login startet `Paste Keyboard` dadurch minimiert.
+
 ## Hauptfenster
 
 ![Hauptfenster](screenshots/01-main-window.png)

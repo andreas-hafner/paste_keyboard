@@ -27,6 +27,23 @@ Minimiert starten, z. B. fuer eine Windows-Autostart-Verknuepfung:
 python main.py --minimized
 ```
 
+Bei der gebauten EXE:
+
+```text
+PasteKeyboard.exe --minimized
+```
+
+Autostart einrichten:
+
+1. `Win+R` druecken.
+2. `shell:startup` eingeben und bestaetigen.
+3. Eine Verknuepfung zu `PasteKeyboard.exe` in diesen Ordner legen.
+4. In den Eigenschaften der Verknuepfung unter `Ziel` den Parameter `--minimized` anhaengen, z. B.:
+
+```text
+"C:\Tools\PasteKeyboard\PasteKeyboard.exe" --minimized
+```
+
 Danach:
 
 1. Ziel-Layout waehlen.

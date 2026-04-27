@@ -4,6 +4,9 @@ __pycache__/
 *.pyd
 
 .venv/
+.env
+*.local.ps1
+.codex-index-*
 build/
 dist/
 
@@ -12,3 +15,4 @@ state/test-settings-invalid.json
 state/test-settings-save.json
 state/test_tmp/
 _tmp/
+.lock

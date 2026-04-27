@@ -2,7 +2,7 @@ param(
     [string]$Python = "python",
     [string]$SpecFile = "PasteKeyboard.spec",
     [string]$OutputFile = "dist\PasteKeyboard.exe",
-    [string]$Thumbprint = "8C453DFBCB73F3653941B6D058E8782089B5B9E3",
+    [string]$Thumbprint = "",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
     [string]$SignTool = "",
     [switch]$SkipSigning,
@@ -124,6 +124,10 @@ $OutputDir = Split-Path -Parent $OutputPath
 $BuildWorkPath = Resolve-RepoPath "build\script-work"
 $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
+$EffectiveThumbprint = $Thumbprint
+if (-not $EffectiveThumbprint) {
+    $EffectiveThumbprint = $env:PASTE_KEYBOARD_SIGN_THUMBPRINT
+}
 
 Assert-UnderRepo $BuildWorkPath
 Assert-UnderRepo $BuildDistPath
@@ -166,12 +170,14 @@ New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 Copy-Item -LiteralPath $BuiltExe -Destination $OutputPath -Force
 Write-Host "Built: $OutputPath"
 
-if (-not $SkipSigning) {
+if (-not $SkipSigning -and $EffectiveThumbprint) {
     $signtoolPath = Find-SignTool
-    Write-Host "Signing with certificate thumbprint $Thumbprint..."
-    & $signtoolPath sign /sha1 $Thumbprint /fd SHA256 /tr $TimestampUrl /td SHA256 $OutputPath
+    Write-Host "Signing with certificate thumbprint $EffectiveThumbprint..."
+    & $signtoolPath sign /sha1 $EffectiveThumbprint /fd SHA256 /tr $TimestampUrl /td SHA256 $OutputPath
     Write-Host "Verifying signature..."
     & $signtoolPath verify /pa /v $OutputPath
+} elseif (-not $SkipSigning) {
+    Write-Host "Skipping signing because no thumbprint was provided. Pass -Thumbprint or set PASTE_KEYBOARD_SIGN_THUMBPRINT."
 }
 
 Write-Host "Build finished successfully."
