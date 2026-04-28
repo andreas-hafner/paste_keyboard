@@ -63,7 +63,7 @@ Hinweis:
 ## Dokumentation
 
 - [Endanwender-Anleitung fuer die EXE](docs/enduser.md)
-- [Bedienungsanleitung](docs/usage.md)
+- [Nutzung aus dem Quellcode](docs/usage.md)
 - [Windows-Build-Anleitung](docs/build.md)
 
 ## Tests

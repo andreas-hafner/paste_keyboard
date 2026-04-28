@@ -22,9 +22,11 @@ Fuer eine Windows-Autostart-Verknuepfung kann die App minimiert starten:
 PasteKeyboard.exe --minimized
 ```
 
-Mit diesem Parameter startet `Paste Keyboard` direkt im Windows-Infobereich. Wenn das Hauptfenster minimiert oder geschlossen wird, bleibt die App dort weiter aktiv. Ueber das Tray-Symbol kann das Fenster wieder geoeffnet oder die App beendet werden.
+Mit diesem Parameter startet `Paste Keyboard` direkt im Windows-Infobereich. Das Hauptfenster erscheint dann nicht als normaler Taskleisten-Button. Wenn das Hauptfenster minimiert oder geschlossen wird, bleibt die App dort weiter aktiv. Ueber das Tray-Symbol kann das Fenster wieder geoeffnet oder die App beendet werden.
 
 ## Windows-Autostart einrichten
+
+Der Autostart wird ueber eine Windows-Verknuepfung eingerichtet. Die EXE selbst wird nicht verschoben oder veraendert.
 
 1. `Win+R` druecken.
 2. `shell:startup` eingeben und bestaetigen.
@@ -38,7 +40,9 @@ Beispiel:
 "C:\Tools\PasteKeyboard\PasteKeyboard.exe" --minimized
 ```
 
-Der Parameter muss ausserhalb der Anfuehrungszeichen stehen. Beim naechsten Windows-Login startet `Paste Keyboard` dadurch minimiert.
+Wichtig: Der Parameter muss ausserhalb der Anfuehrungszeichen stehen. Nur der Pfad zur EXE wird in Anfuehrungszeichen gesetzt.
+
+Beim naechsten Windows-Login startet `Paste Keyboard` dadurch minimiert im Infobereich und ist fuer den globalen Hotkey bereit. Soll die App sichtbar starten, den Parameter `--minimized` aus dem Feld `Ziel` wieder entfernen.
 
 ## Hauptfenster
 
