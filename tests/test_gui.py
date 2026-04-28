@@ -86,6 +86,71 @@ class GuiHotkeyTests(unittest.TestCase):
         self.assertEqual(app.hotkey_var.get(), "Ctrl+Alt+V")
         self.assertEqual(app.status_var.get(), "Hotkey nicht aktiv: belegt")
 
+    def test_schedule_minimized_start_registers_retry_delays(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+
+        app._schedule_minimized_start()
+
+        self.assertEqual(app.root.after.call_count, len(gui.MINIMIZE_RETRY_DELAYS_MS))
+        self.assertEqual(
+            [call.args for call in app.root.after.call_args_list],
+            [(delay_ms, app._minimize_window) for delay_ms in gui.MINIMIZE_RETRY_DELAYS_MS],
+        )
+
+    def test_hide_window_from_taskbar_uses_toolwindow_style(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+
+        app._hide_window_from_taskbar()
+
+        app.root.attributes.assert_called_once_with("-toolwindow", True)
+
+    def test_close_hides_window_to_tray_instead_of_destroying(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        app.exiting = False
+
+        app._on_close()
+
+        app.root.withdraw.assert_called_once()
+        app.root.destroy.assert_not_called()
+
+    def test_exit_app_closes_tray_icon_and_closes_hotkey_listener(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        tray_icon = Mock()
+        app.tray_icon = tray_icon
+        app.hotkey_listener = Mock()
+        app.exiting = False
+
+        app._exit_app()
+
+        self.assertTrue(app.exiting)
+        tray_icon.close.assert_called_once()
+        app.hotkey_listener.close.assert_called_once()
+        app.root.destroy.assert_called_once()
+
+    def test_poll_tray_events_handles_show_and_exit(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        app.tray_queue = queue.SimpleQueue()
+        app._show_from_tray = Mock()
+        app.exiting = False
+
+        def exit_app() -> None:
+            app.exiting = True
+
+        app._exit_app = Mock(side_effect=exit_app)
+
+        app.tray_queue.put("show")
+        app.tray_queue.put("exit")
+        app._poll_tray_events()
+
+        app._show_from_tray.assert_called_once()
+        app._exit_app.assert_called_once()
+        app.root.after.assert_not_called()
+
     def test_save_settings_keeps_active_hotkey_when_registration_fails(self) -> None:
         current_hotkey = parse_hotkey("Ctrl+Alt+V")
         app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)

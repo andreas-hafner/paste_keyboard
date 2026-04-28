@@ -4,6 +4,9 @@ __pycache__/
 *.pyd
 
 .venv/
+.env
+*.local.ps1
+.codex-index-*
 build/
 dist/
 
@@ -11,6 +14,5 @@ state/settings.json
 state/test-settings-invalid.json
 state/test-settings-save.json
 state/test_tmp/
-tests/_tmp/
-
-PasteKeyboard.spec
+_tmp/
+.lock

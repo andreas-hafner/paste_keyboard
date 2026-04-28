@@ -1,34 +1,30 @@
-# Bedienungsanleitung
+# Nutzung aus dem Quellcode
 
-## Zweck
+Diese Datei beschreibt den Start und die manuelle Pruefung aus dem Repository heraus. Die vollstaendige Anleitung fuer ausgelieferte Nutzer der fertigen EXE steht in der [Endanwender-Anleitung](enduser.md).
 
-`Paste Keyboard` tippt Text aus der Zwischenablage per simulierten Tastendruecken ein. Das ist fuer Remote-Konsolen und Browser-VMs gedacht, in denen normales Einfuegen nicht oder nur unzuverlaessig funktioniert.
+## Voraussetzungen
 
-## Hauptfenster
+- Windows
+- Python 3.14 oder kompatible lokale Python-Installation
+- `tkinter` in der Python-Installation
 
-![Hauptfenster](screenshots/01-main-window.png)
+## Starten
 
-Das Hauptfenster enthaelt die wichtigsten Einstellungen:
+Aus dem Repository:
 
-- `Globaler Hotkey`: loest das Eintippen global aus.
-- `Ziel-Layout`: bestimmt, wie Zeichen in Tastendruecke uebersetzt werden.
-- `Startverzoegerung (ms)`: Wartezeit zwischen Ausloesen und Beginn der Eingabe.
-- `Tastendelay (ms)`: kleine Pause zwischen einzelnen Tastendruecken.
-- `Nicht unterstuetzte Zeichen ueberspringen`: ignoriert Zeichen, die im gewaehlten Layout nicht abbildbar sind.
-- `Zwischenablage tippen`: tippt den aktuellen Clipboard-Text, aber nur wenn die Zwischenablage Text enthaelt und der Inhalt nicht groesser als `1000` Zeichen ist.
-- `Zwischenablage laden`: laedt den Clipboard-Text in das Textfeld, auch wenn er laenger als `1000` Zeichen ist.
+```powershell
+python main.py
+```
 
-## Beispiel mit geladenem Text
+Minimiert starten:
 
-![Text im Vorschaufeld](screenshots/02-text-loaded.png)
+```powershell
+python main.py --minimized
+```
 
-Das Vorschaufeld ist nuetzlich zum Testen:
+Mit `--minimized` startet die App direkt im Windows-Infobereich. Das Hauptfenster erscheint dann nicht als normaler Taskleisten-Button; geoeffnet und beendet wird die App ueber das Tray-Symbol.
 
-- Text aus der Zwischenablage laden
-- Text pruefen oder anpassen
-- direkt mit `Textfeld tippen` ausloesen
-
-## Speicherort der Einstellungen
+## Einstellungen
 
 Die App speichert ihre Einstellungen pro Benutzer unter:
 
@@ -36,125 +32,23 @@ Die App speichert ihre Einstellungen pro Benutzer unter:
 %APPDATA%\PasteKeyboard\settings.json
 ```
 
-## Typischer Ablauf
+Diese Datei wird sowohl beim Start aus dem Quellcode als auch bei der gebauten EXE verwendet.
+
+## Typischer Entwicklungs-Check
 
 1. App mit `python main.py` starten.
-2. Ziel-Layout passend zur VM auswaehlen.
-3. Einen Hotkey festlegen, z. B. `Ctrl+Alt+V` oder `Ctrl+Shift+F8`.
-4. Einen sinnvollen Wert fuer `Startverzoegerung` setzen.
-Fuer manuelle Tests per Button sind `1000` bis `1500` ms oft praktisch.
+2. Ziel-Layout passend zum Testziel auswaehlen.
+3. Hotkey, Startverzoegerung und Tastendelay bei Bedarf anpassen.
+4. `Einstellungen speichern` klicken.
 5. Text in die Zwischenablage kopieren.
-6. Zielkonsole fokussieren.
+6. Testziel fokussieren.
 7. Hotkey druecken oder die Eingabe ueber die GUI starten.
-
-## Zwischenablage
-
-- Verarbeitet wird nur Text.
-- Bilder, Dateien und andere Clipboard-Formate werden nicht unterstuetzt.
-- Direktes Tippen aus der Zwischenablage ist auf `1000` Zeichen begrenzt.
-- Fuer laengere Inhalte: erst `Zwischenablage laden`, dann den Text im Vorschaufeld mit `Textfeld tippen` senden.
-
-## Zeichenunterstuetzung
-
-- Unterstuetzt werden nur Zeichen, die im gewaehlten Ziel-Layout direkt oder ueber unterstuetzte Dead-Keys abbildbar sind.
-- `Enter` und `Tab` werden explizit unterstuetzt.
-- Beispiele:
-  - `de-DE` eignet sich gut fuer deutsche Umlaute und typische deutsche Sonderzeichen.
-  - `en-US` eignet sich gut fuer ASCII und typische englische Shell-Kommandos, aber nicht fuer viele Umlaute.
-  - `en-US-intl` ist fuer Umlaute und Akzentzeichen oft besser geeignet als `en-US`.
-- Nicht garantiert sind z. B. Emoji, CJK-Zeichen und viele Unicode-Sonderzeichen.
-
-## Nicht unterstuetzte Zeichen ueberspringen
-
-- Standardmaessig ist diese Option deaktiviert.
-- Deaktiviert:
-  - Die Eingabe bricht am ersten Zeichen ab, das im gewaehlten Layout nicht abbildbar ist.
-  - Das ist sicherer, weil kein Text stillschweigend verkuerzt oder veraendert wird.
-- Aktiviert:
-  - Nicht abbildbare Zeichen werden ausgelassen, der Rest wird weiter getippt.
-  - Das ist praktisch fuer unkritische Texte, kann aber Inhalte stillschweigend veraendern.
-
-## Layout-Empfehlungen
-
-### `de-DE`
-
-Empfohlen, wenn die Ziel-VM ein deutsches Tastaturlayout verwendet.
-
-Geeignet fuer:
-
-- deutsche Umlaute
-- `@`
-- `EUR`
-- viele typische deutsche Sonderzeichen
-
-### `en-US`
-
-Empfohlen fuer einfache englische Layouts ohne internationale Dead Keys.
-
-Geeignet fuer:
-
-- ASCII
-- typische englische Shell-Kommandos
-
-Eingeschraenkt bei:
-
-- `aeoeuess`
-- einigen Sonderzeichen, die im US-Layout nicht direkt existieren
-
-### `en-US-intl`
-
-Sinnvoll, wenn die Ziel-VM ein US-International-Layout verwendet und Umlaute oder Akzentzeichen benoetigt werden.
-
-## Tipps fuer Proxmox und noVNC
-
-- Vor dem Ausloesen immer sicherstellen, dass die VM-Konsole wirklich den Fokus hat.
-- Fuer Browser-VM-Konsolen ist der globale Hotkey meist zuverlaessiger als der Button in der App.
-- Wenn nichts im Ziel landet, zuerst die `Startverzoegerung` erhoehen.
-- Wenn Sonderzeichen falsch erscheinen, stimmt meist das Ziel-Layout nicht.
-
-## Fehlersuche
-
-### Es wird nichts geschrieben
-
-Pruefen:
-
-1. Ist das richtige Fenster fokussiert?
-2. Ist die Startverzoegerung hoch genug?
-3. Ist der globale Hotkey wirklich gespeichert worden?
-4. Funktioniert `Textfeld tippen` im lokalen Notepad?
-
-### Zwischenablage wird abgewiesen
-
-Pruefen:
-
-1. Enthaelt die Zwischenablage wirklich Text?
-2. Ist der Inhalt groesser als `1000` Zeichen?
-3. Wenn der Text laenger ist: `Zwischenablage laden` und danach `Textfeld tippen` verwenden.
-
-### Sonderzeichen sind falsch
-
-Pruefen:
-
-1. Stimmt das Ziel-Layout in der App?
-2. Stimmt das tatsaechliche Tastaturlayout in der VM?
-3. Falls Umlaute auf englischer VM gebraucht werden: `en-US-intl` testen.
-4. Falls einzelne Zeichen komplett fehlen: pruefen, ob sie im gewaehlten Layout ueberhaupt unterstuetzt werden.
-
-### Hotkey funktioniert nicht
-
-Pruefen:
-
-1. Ist die gewaehlte Tastenkombination schon von Windows oder einer anderen App belegt?
-2. Testweise `Ctrl+Shift+F8` oder `Alt+F9` verwenden.
-3. Nach Aenderungen immer `Einstellungen speichern` druecken.
-
-## Manuelle Pruefung
 
 Sinnvolle Testziele:
 
-1. Notepad
-2. Browser-`textarea`
-3. Proxmox/noVNC-Konsole
+- Notepad
+- Browser-`textarea`
+- Proxmox/noVNC-Konsole
 
 Empfohlene Testtexte:
 
@@ -164,3 +58,25 @@ Empfohlene Testtexte:
 - mehrzeiliger Text
 - Tabs
 - ein sehr langer Text mit mehr als `1000` Zeichen fuer den Clipboard-Guard
+
+## Tests
+
+Unit-Tests:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+## Build
+
+Die gebaute EXE wird ueber das Build-Script erzeugt:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
+```
+
+Details stehen in der [Windows-Build-Anleitung](build.md).
+
+## Bedienung der EXE
+
+Alles zur Bedienung der ausgelieferten App, Windows-Autostart, Zwischenablage, Layout-Empfehlungen und Fehlersuche steht in der [Endanwender-Anleitung](enduser.md).

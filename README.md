@@ -14,13 +14,36 @@
 - Eingabe aus Zwischenablage oder aus dem Test-/Vorschautext
 - `Zwischenablage tippen` akzeptiert nur Text und ist auf `1000` Zeichen pro Ausloesung begrenzt
 - Einstellungen werden unter `%APPDATA%\\PasteKeyboard\\settings.json` gespeichert
-- GitHub Actions baut Release- und CI-Artefakte fuer Windows
-- Releases folgen Semantic Versioning; Details stehen in der Build-/CI-Doku
 
 ## Schnellstart
 
 ```powershell
 python main.py
+```
+
+Minimiert starten, z. B. fuer eine Windows-Autostart-Verknuepfung:
+
+```powershell
+python main.py --minimized
+```
+
+Mit `--minimized` startet die App direkt im Windows-Infobereich. Das Hauptfenster erscheint nicht als normaler Taskleisten-Button; geoeffnet und beendet wird die App ueber das Tray-Symbol.
+
+Bei der gebauten EXE:
+
+```text
+PasteKeyboard.exe --minimized
+```
+
+Autostart einrichten:
+
+1. `Win+R` druecken.
+2. `shell:startup` eingeben und bestaetigen.
+3. Eine Verknuepfung zu `PasteKeyboard.exe` in diesen Ordner legen.
+4. In den Eigenschaften der Verknuepfung unter `Ziel` den Parameter `--minimized` anhaengen, z. B.:
+
+```text
+"C:\Tools\PasteKeyboard\PasteKeyboard.exe" --minimized
 ```
 
 Danach:
@@ -40,14 +63,22 @@ Hinweis:
 ## Dokumentation
 
 - [Endanwender-Anleitung fuer die EXE](docs/enduser.md)
-- [Bedienungsanleitung](docs/usage.md)
-- [Build- und CI/CD-Anleitung](docs/build.md)
+- [Nutzung aus dem Quellcode](docs/usage.md)
+- [Windows-Build-Anleitung](docs/build.md)
 
 ## Tests
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+## Build
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
+```
+
+Das erzeugt `dist\PasteKeyboard.exe`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `CODESIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
 
 ## Hinweise
 

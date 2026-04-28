@@ -14,32 +14,111 @@ from .typing import TypingError, type_text
 
 HOTKEY_ID = 1
 MAX_CLIPBOARD_TEXT_CHARS = 1000
+MINIMIZE_RETRY_DELAYS_MS = (50, 250, 750)
+APP_TITLE = "Paste Keyboard"
+TASKBAR_STATUS_MAX_CHARS = 96
 
 
 class PasteKeyboardApp:
-    def __init__(self) -> None:
+    def __init__(self, start_minimized: bool = False) -> None:
         self.root = tk.Tk()
-        self.root.title("Paste Keyboard")
+        self.root.title(APP_TITLE)
         self.root.geometry("760x520")
         self.root.minsize(680, 480)
+        self._hide_window_from_taskbar()
 
         self.settings = load_settings()
         self.hotkey_queue: queue.SimpleQueue[int] = queue.SimpleQueue()
+        self.tray_queue: queue.SimpleQueue[str] = queue.SimpleQueue()
         self.hotkey_listener: win32.HotkeyListener | None = None
         self.current_hotkey: ParsedHotkey | None = None
+        self.tray_icon: win32.TrayIcon | None = None
         self.typing_in_progress = False
+        self.exiting = False
 
         self.hotkey_var = tk.StringVar(value=self.settings.hotkey)
         self.layout_var = tk.StringVar(value=self.settings.layout_id)
         self.start_delay_var = tk.IntVar(value=self.settings.start_delay_ms)
         self.key_delay_var = tk.IntVar(value=self.settings.key_delay_ms)
         self.skip_unsupported_var = tk.BooleanVar(value=self.settings.skip_unsupported)
-        self.status_var = tk.StringVar(value="Bereit.")
+        self.status_var = tk.StringVar(value="")
 
         self._build_ui()
+        self._set_status("Bereit.")
+        self._setup_tray_icon()
         self._register_hotkey_from_form(initial=True)
         self._poll_hotkeys()
+        self._poll_tray_events()
+        self.root.bind("<Unmap>", self._on_unmap)
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        if start_minimized:
+            self._schedule_minimized_start()
+
+    def _schedule_minimized_start(self) -> None:
+        for delay_ms in MINIMIZE_RETRY_DELAYS_MS:
+            self.root.after(delay_ms, self._minimize_window)
+
+    def _hide_window_from_taskbar(self) -> None:
+        try:
+            self.root.attributes("-toolwindow", True)
+        except tk.TclError:
+            pass
+
+    def _minimize_window(self) -> None:
+        self.root.update_idletasks()
+        self._hide_to_tray()
+
+    def _setup_tray_icon(self) -> None:
+        try:
+            self.tray_icon = win32.TrayIcon(
+                APP_TITLE,
+                self.tray_queue.put,
+            )
+            self.tray_icon.start()
+        except (tk.TclError, win32.Win32Error):
+            self.tray_icon = None
+
+    def _on_unmap(self, _event: tk.Event) -> None:
+        if self.exiting:
+            return
+        try:
+            if self.root.state() == "iconic":
+                self.root.after(0, self._hide_to_tray)
+        except tk.TclError:
+            pass
+
+    def _hide_to_tray(self) -> None:
+        if self.exiting:
+            return
+        try:
+            self.root.withdraw()
+        except tk.TclError:
+            pass
+
+    def _show_from_tray(self) -> None:
+        try:
+            self.root.deiconify()
+            self.root.state("normal")
+            self.root.lift()
+            self.root.focus_force()
+        except tk.TclError:
+            pass
+
+    def _poll_tray_events(self) -> None:
+        if self.exiting:
+            return
+        while True:
+            try:
+                event = self.tray_queue.get_nowait()
+            except queue.Empty:
+                break
+            if event == "show":
+                self._show_from_tray()
+            elif event == "exit":
+                self._exit_app()
+                return
+        if not self.exiting:
+            self.root.after(100, self._poll_tray_events)
 
     def _build_ui(self) -> None:
         self.root.columnconfigure(0, weight=1)
@@ -93,8 +172,23 @@ class PasteKeyboardApp:
         ttk.Button(editor_buttons, text="Textfeld tippen", command=self._type_editor_text).grid(row=0, column=0, padx=(0, 8))
         ttk.Button(editor_buttons, text="Textfeld leeren", command=lambda: self.editor.delete("1.0", "end")).grid(row=0, column=1)
 
-        status = ttk.Label(self.root, textvariable=self.status_var, anchor="w", relief="sunken", padding=(8, 6))
-        status.grid(row=2, column=0, padx=12, pady=(0, 12), sticky="ew")
+    def _set_status(self, message: str) -> None:
+        self.status_var.set(message)
+        if not hasattr(self, "root"):
+            return
+        taskbar_message = self._taskbar_status_text(message)
+        if taskbar_message:
+            self.root.title(f"{APP_TITLE} - {taskbar_message}")
+        else:
+            self.root.title(APP_TITLE)
+        if getattr(self, "tray_icon", None) is not None:
+            self.tray_icon.update_tooltip(f"{APP_TITLE} - {taskbar_message}" if taskbar_message else APP_TITLE)
+
+    def _taskbar_status_text(self, message: str) -> str:
+        collapsed = " ".join(message.split())
+        if len(collapsed) <= TASKBAR_STATUS_MAX_CHARS:
+            return collapsed
+        return f"{collapsed[: TASKBAR_STATUS_MAX_CHARS - 3]}..."
 
     def _collect_settings(self) -> AppSettings:
         return AppSettings(
@@ -119,14 +213,14 @@ class PasteKeyboardApp:
             self._register_hotkey(parsed)
         except win32.Win32Error as exc:
             self._sync_hotkey_form_with_active_listener()
-            self.status_var.set(self._active_hotkey_status())
+            self._set_status(self._active_hotkey_status())
             messagebox.showerror("Hotkey konnte nicht aktiviert werden", str(exc))
             return
 
         self.settings = settings
         self.hotkey_var.set(parsed.display)
         save_settings(settings)
-        self.status_var.set(f"Einstellungen gespeichert. Hotkey aktiv: {parsed.display}")
+        self._set_status(f"Einstellungen gespeichert. Hotkey aktiv: {parsed.display}")
 
     def _register_hotkey_from_form(self, initial: bool = False) -> None:
         try:
@@ -134,13 +228,13 @@ class PasteKeyboardApp:
             self.hotkey_var.set(parsed.display)
             self._register_hotkey(parsed)
             if initial:
-                self.status_var.set(f"Bereit. Hotkey aktiv: {parsed.display}")
+                self._set_status(f"Bereit. Hotkey aktiv: {parsed.display}")
         except ValueError as exc:
             if initial:
-                self.status_var.set(f"Hotkey ungueltig: {exc}")
+                self._set_status(f"Hotkey ungueltig: {exc}")
         except win32.Win32Error as exc:
             if initial:
-                self.status_var.set(f"Hotkey nicht aktiv: {exc}")
+                self._set_status(f"Hotkey nicht aktiv: {exc}")
 
     def _register_hotkey(self, parsed: ParsedHotkey) -> None:
         if parsed == self.current_hotkey and self.hotkey_listener is not None:
@@ -231,7 +325,7 @@ class PasteKeyboardApp:
             return
         self.editor.delete("1.0", "end")
         self.editor.insert("1.0", text)
-        self.status_var.set("Zwischenablage in das Textfeld geladen.")
+        self._set_status("Zwischenablage in das Textfeld geladen.")
 
     def _type_clipboard_from_button(self) -> None:
         try:
@@ -245,7 +339,7 @@ class PasteKeyboardApp:
         try:
             text = self._load_clipboard_text_for_typing()
         except RuntimeError as exc:
-            self.status_var.set(str(exc))
+            self._set_status(str(exc))
             return
         self._start_typing(text, source_label="Zwischenablage via Hotkey")
 
@@ -258,7 +352,7 @@ class PasteKeyboardApp:
 
     def _start_typing(self, text: str, source_label: str) -> None:
         if self.typing_in_progress:
-            self.status_var.set("Es laeuft bereits ein Tippvorgang.")
+            self._set_status("Es laeuft bereits ein Tippvorgang.")
             return
 
         try:
@@ -270,7 +364,7 @@ class PasteKeyboardApp:
             return
 
         self.typing_in_progress = True
-        self.status_var.set(f"{source_label}: sende Tastendruecke...")
+        self._set_status(f"{source_label}: sende Tastendruecke...")
 
         thread = threading.Thread(
             target=self._typing_worker,
@@ -309,11 +403,18 @@ class PasteKeyboardApp:
     def _finish_typing(self, success: str | None = None, error: str | None = None) -> None:
         self.typing_in_progress = False
         if success is not None:
-            self.status_var.set(success)
+            self._set_status(success)
         elif error is not None:
-            self.status_var.set(error)
+            self._set_status(error)
 
     def _on_close(self) -> None:
+        self._hide_to_tray()
+
+    def _exit_app(self) -> None:
+        self.exiting = True
+        if self.tray_icon is not None:
+            self.tray_icon.close()
+            self.tray_icon = None
         if self.hotkey_listener is not None:
             self.hotkey_listener.close()
         self.root.destroy()
@@ -322,6 +423,6 @@ class PasteKeyboardApp:
         self.root.mainloop()
 
 
-def run_app() -> None:
-    app = PasteKeyboardApp()
+def run_app(start_minimized: bool = False) -> None:
+    app = PasteKeyboardApp(start_minimized=start_minimized)
     app.run()
