@@ -16,6 +16,7 @@ python -m pip install pyinstaller
 
 - Windows SDK mit `signtool.exe`, wenn signiert werden soll
 - Signaturzertifikat im Zertifikatsspeicher des Build-Benutzers
+- Microsoft Edge oder Google Chrome fuer die PDF-Erzeugung der Anleitung
 - funktionierender Start mit:
 
 ```powershell
@@ -35,12 +36,14 @@ Das Script fuehrt standardmaessig aus:
 1. Unit-Tests
 2. PyInstaller-Build aus `PasteKeyboard.spec`
 3. Kopie nach `dist\PasteKeyboard.exe`
-4. Signatur mit SHA256 und DigiCert-Timestamp, wenn ein Thumbprint uebergeben oder per Environment Variable gesetzt ist
-5. Signaturpruefung mit `signtool verify /pa /v`, wenn signiert wurde
+4. PDF-Erzeugung aus `docs\enduser.md` nach `dist\PasteKeyboard-Anleitung.pdf`
+5. Signatur mit SHA256 und DigiCert-Timestamp, wenn ein Thumbprint uebergeben oder per Environment Variable gesetzt ist
+6. Signaturpruefung mit `signtool verify /pa /v`, wenn signiert wurde
 
 Ergebnis:
 
 - `dist\PasteKeyboard.exe`
+- `dist\PasteKeyboard-Anleitung.pdf`
 - Laufzeiteinstellungen werden unter `%APPDATA%\PasteKeyboard\settings.json` gespeichert
 
 Ohne Thumbprint wird der Build bewusst ohne Signatur abgeschlossen.
@@ -100,6 +103,18 @@ Python explizit setzen:
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -Python py
 ```
 
+PDF-Dokumentation fuer Sonderfaelle ueberspringen:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SkipDocs
+```
+
+Nur die PDF-Dokumentation neu erzeugen:
+
+```powershell
+python scripts\build_docs_pdf.py
+```
+
 ## Verifizierter Build im aktuellen Workspace
 
 Im aktuellen Workspace wurde der Build erfolgreich ausgefuehrt mit:
@@ -111,6 +126,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1 -SkipTests
 Verifiziert:
 
 - EXE wurde erzeugt: `dist\PasteKeyboard.exe`
+- PDF-Anleitung wurde erzeugt: `dist\PasteKeyboard-Anleitung.pdf`
 - EXE wurde mit einem lokal bereitgestellten Zertifikats-Thumbprint signiert
 - Signatur wurde mit `signtool verify /pa /v` erfolgreich geprueft
 - Zeitstempel wurde ueber `http://timestamp.digicert.com` gesetzt
@@ -122,9 +138,14 @@ Nach dem Build sollte mindestens geprueft werden:
 
 1. Startet die GUI?
 2. Startet `PasteKeyboard.exe --minimized` minimiert?
-3. Laesst sich der globale Hotkey speichern?
-4. Funktioniert `Zwischenablage tippen` in Notepad?
-5. Stimmen Layout-Auswahl und Sonderzeichenverhalten?
+3. Liegt `PasteKeyboard-Anleitung.pdf` neben der EXE in `dist` und laesst sich oeffnen?
+4. Verhindert die App eine zweite parallele Instanz?
+5. Laesst sich der globale Hotkey mit `Aufzeichnen` uebernehmen und speichern?
+6. Wird eine belegte Tastenkombination sichtbar abgelehnt, ohne das Feld zu blockieren?
+7. Funktioniert `Zwischenablage tippen` in Notepad?
+8. Greift das einstellbare Zwischenablage-Limit?
+9. Erscheint bei aktivierter Option nach Abschluss das lokale Popup unten rechts?
+10. Stimmen Layout-Auswahl und Sonderzeichenverhalten?
 
 ## Typische Stolperstellen
 
@@ -133,5 +154,7 @@ Nach dem Build sollte mindestens geprueft werden:
 - Unsigned EXEs koennen von SmartScreen oder Defender markiert werden.
 - `tkinter` muss in der Python-Installation vorhanden sein.
 - Manche Hotkeys sind bereits durch Windows oder andere Tools belegt.
+- Die Hotkey-Aufzeichnung liest den aktuellen physischen Tastenzustand; waehrend der Aufnahme ist das Feld readonly und der aktive globale Hotkey wird kurz pausiert.
 - Das Ziel-Layout in der VM muss zur Auswahl in der App passen.
+- PDF-Erzeugung benoetigt Edge oder Chrome im Standard-Installationspfad oder im `PATH`.
 - Falls Windows das Bearbeiten von EXE-Ressourcen blockiert, nutzt `scripts\build.ps1` automatisch einen PyInstaller-Fallback ohne kosmetische Resource-Updates.

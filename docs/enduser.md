@@ -24,6 +24,8 @@ PasteKeyboard.exe --minimized
 
 Mit diesem Parameter startet `Paste Keyboard` direkt im Windows-Infobereich. Das Hauptfenster erscheint dann nicht als normaler Taskleisten-Button. Wenn das Hauptfenster minimiert oder geschlossen wird, bleibt die App dort weiter aktiv. Ueber das Tray-Symbol kann das Fenster wieder geoeffnet oder die App beendet werden.
 
+Es kann nur eine Instanz gleichzeitig laufen. Wenn `Paste Keyboard` bereits aktiv ist, startet eine zweite Instanz nicht noch einmal und zeigt nur einen kurzen Hinweis.
+
 ## Windows-Autostart einrichten
 
 Der Autostart wird ueber eine Windows-Verknuepfung eingerichtet. Die EXE selbst wird nicht verschoben oder veraendert.
@@ -51,20 +53,24 @@ Beim naechsten Windows-Login startet `Paste Keyboard` dadurch minimiert im Infob
 Wichtige Felder:
 
 - `Globaler Hotkey`
-  Damit wird das Eintippen global ausgeloest.
+  Damit wird das Eintippen global ausgeloest. Das Feld ist readonly. Mit `Aufzeichnen` kann die Tastenkombination direkt gedrueckt und uebernommen werden; danach `Einstellungen speichern` klicken.
 - `Ziel-Layout`
   Legt fest, welches Tastaturlayout fuer die Eingabe simuliert wird.
 - `Startverzoegerung (ms)`
   Wartezeit zwischen Ausloesen und Start der Eingabe.
 - `Tastendelay (ms)`
   Kleine Pause zwischen einzelnen Tasten.
+- `Zwischenablage-Limit beim Tippen`
+  Maximale Anzahl Zeichen, die `Zwischenablage tippen` und der Hotkey direkt aus der Zwischenablage senden. Standardwert: `1000`; der Wert kann im Hauptfenster angepasst werden.
+- `Benachrichtigung nach Tippvorgang`
+  Optional: zeigt nach abgeschlossenem Tippvorgang ein kleines Popup unten rechts und versucht zusaetzlich eine Tray- oder Windows-Benachrichtigung.
 - `Nicht unterstuetzte Zeichen ueberspringen`
   Ueberspringt Zeichen, die im gewaehlten Layout nicht abbildbar sind.
 
 ## Typischer Ablauf
 
 1. Passendes `Ziel-Layout` auswaehlen.
-2. Einen Hotkey festlegen.
+2. Einen Hotkey festlegen oder mit `Aufzeichnen` per Tastendruck uebernehmen.
 3. Auf `Einstellungen speichern` klicken.
 4. Den gewuenschten Text in die Zwischenablage kopieren.
 5. Das Zielfenster oder die VM-Konsole fokussieren.
@@ -74,7 +80,7 @@ Wichtige Felder:
 
 - Verarbeitet wird nur Text.
 - Bilder, Dateien und andere Clipboard-Formate werden nicht unterstuetzt.
-- `Zwischenablage tippen` und der Hotkey sind auf `1000` Zeichen pro Ausloesung begrenzt.
+- `Zwischenablage tippen` und der Hotkey sind standardmaessig auf `1000` Zeichen pro Ausloesung begrenzt; das Limit kann im Hauptfenster angepasst werden.
 - Wenn der Text laenger ist: zuerst `Zwischenablage laden`, dann im Vorschaufeld pruefen und mit `Textfeld tippen` senden.
 
 ## Zeichenunterstuetzung
@@ -144,7 +150,7 @@ Pruefen:
 Pruefen:
 
 1. Enthaelt die Zwischenablage Text?
-2. Ist der Inhalt laenger als `1000` Zeichen?
+2. Ist der Inhalt laenger als das eingestellte Zwischenablage-Limit? Standardwert: `1000` Zeichen.
 3. Fuer lange Inhalte: `Zwischenablage laden` und danach `Textfeld tippen` verwenden.
 
 ### Sonderzeichen sind falsch
@@ -163,6 +169,19 @@ Pruefen:
 1. Wird die Tastenkombination bereits von einer anderen Anwendung benutzt?
 2. Testweise `Ctrl+Shift+F8` oder `Alt+F9` verwenden.
 3. Nach Aenderungen immer `Einstellungen speichern` klicken.
+
+### Hotkey-Aufzeichnung uebernimmt eine falsche Kombination
+
+Pruefen:
+
+1. `Aufzeichnen` klicken.
+2. Modifier zuerst gedrueckt halten, dann die Haupttaste druecken.
+3. Erst loslassen, wenn die Kombination im Feld steht.
+4. Wenn Windows oder ein anderes Tool die Kombination abfaengt, eine andere Kombination testen.
+
+### Es erscheint keine Windows-Benachrichtigung
+
+Die App zeigt bei aktivierter Option immer ein kleines lokales Popup unten rechts. Die zusaetzliche Windows- oder Tray-Benachrichtigung kann Windows je nach Fokusassistent, Benachrichtigungseinstellungen oder Tray-Verhalten unterdruecken.
 
 ## Speicherort der Einstellungen
 

@@ -27,6 +27,11 @@ class AppSettings:
     start_delay_ms: int = 250
     key_delay_ms: int = 25
     skip_unsupported: bool = False
+    clipboard_typing_limit: int = 1000
+    notify_on_finish: bool = False
+
+
+DEFAULT_SETTINGS = AppSettings()
 
 
 def ensure_state_dir(path: Path = SETTINGS_PATH) -> None:
@@ -51,11 +56,18 @@ def load_settings(path: Path = SETTINGS_PATH) -> AppSettings:
         return AppSettings()
 
     return AppSettings(
-        hotkey=str(data.get("hotkey", AppSettings.hotkey)),
-        layout_id=str(data.get("layout_id", AppSettings.layout_id)),
-        start_delay_ms=_clamp_int(data.get("start_delay_ms"), AppSettings.start_delay_ms, 0, 5000),
-        key_delay_ms=_clamp_int(data.get("key_delay_ms"), AppSettings.key_delay_ms, 0, 1000),
-        skip_unsupported=bool(data.get("skip_unsupported", AppSettings.skip_unsupported)),
+        hotkey=str(data.get("hotkey", DEFAULT_SETTINGS.hotkey)),
+        layout_id=str(data.get("layout_id", DEFAULT_SETTINGS.layout_id)),
+        start_delay_ms=_clamp_int(data.get("start_delay_ms"), DEFAULT_SETTINGS.start_delay_ms, 0, 5000),
+        key_delay_ms=_clamp_int(data.get("key_delay_ms"), DEFAULT_SETTINGS.key_delay_ms, 0, 1000),
+        skip_unsupported=bool(data.get("skip_unsupported", DEFAULT_SETTINGS.skip_unsupported)),
+        clipboard_typing_limit=_clamp_int(
+            data.get("clipboard_typing_limit"),
+            DEFAULT_SETTINGS.clipboard_typing_limit,
+            1,
+            1_000_000,
+        ),
+        notify_on_finish=bool(data.get("notify_on_finish", DEFAULT_SETTINGS.notify_on_finish)),
     )
 
 
