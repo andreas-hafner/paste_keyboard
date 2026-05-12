@@ -5,14 +5,16 @@
 ## Kurzueberblick
 
 - Windows-Desktop-App mit `tkinter`
-- globaler Hotkey zum Ausloesen
+- globaler Hotkey zum Ausloesen, per `Aufzeichnen` direkt ueber Tastendruck setzbar
 - Ziel-Layout umschaltbar:
   - `de-DE`
   - `en-US`
   - `en-US-intl`
 - einstellbare Startverzoegerung und Tippgeschwindigkeit
 - Eingabe aus Zwischenablage oder aus dem Test-/Vorschautext
-- `Zwischenablage tippen` akzeptiert nur Text und ist auf `1000` Zeichen pro Ausloesung begrenzt
+- `Zwischenablage tippen` akzeptiert nur Text; das Limit ist in der GUI konfigurierbar und standardmaessig `1000` Zeichen pro Ausloesung
+- optionale Abschlussbenachrichtigung mit kleinem Popup unten rechts; Windows-Tray-Benachrichtigung wird zusaetzlich versucht
+- es kann nur eine Instanz gleichzeitig laufen
 - Einstellungen werden unter `%APPDATA%\\PasteKeyboard\\settings.json` gespeichert
 
 ## Schnellstart
@@ -28,6 +30,8 @@ python main.py --minimized
 ```
 
 Mit `--minimized` startet die App direkt im Windows-Infobereich. Das Hauptfenster erscheint nicht als normaler Taskleisten-Button; geoeffnet und beendet wird die App ueber das Tray-Symbol.
+
+Wenn bereits eine Instanz laeuft, startet keine zweite App-Instanz. Stattdessen erscheint ein kurzer Hinweis.
 
 Bei der gebauten EXE:
 
@@ -49,7 +53,7 @@ Autostart einrichten:
 Danach:
 
 1. Ziel-Layout waehlen.
-2. Optional Hotkey, Startverzoegerung und Tastendelay anpassen.
+2. Optional Hotkey mit `Aufzeichnen`, Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung anpassen.
 3. Text in die Zwischenablage kopieren.
 4. Ziel in der VM-Konsole fokussieren.
 5. Hotkey druecken oder `Zwischenablage tippen` verwenden.
@@ -57,8 +61,15 @@ Danach:
 Hinweis:
 
 - Es wird nur Text aus der Zwischenablage verarbeitet. Bilder, Dateien und andere Clipboard-Formate werden nicht unterstuetzt.
-- Direktes Tippen aus der Zwischenablage ist auf `1000` Zeichen begrenzt.
+- Direktes Tippen aus der Zwischenablage ist standardmaessig auf `1000` Zeichen begrenzt; das Limit kann in der GUI angepasst werden.
 - Fuer laengere Inhalte: zuerst `Zwischenablage laden`, dann im Vorschaufeld mit `Textfeld tippen` ausloesen.
+- Wenn bereits eine Instanz laeuft, startet eine zweite Instanz nicht noch einmal.
+
+## Screenshots
+
+![Hauptfenster](docs/screenshots/01-main-window.png)
+
+![Vorschautext](docs/screenshots/02-text-loaded.png)
 
 ## Dokumentation
 
@@ -78,7 +89,7 @@ python -m unittest discover -s tests -v
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Das erzeugt `dist\PasteKeyboard.exe`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `CODESIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
+Das erzeugt `dist\PasteKeyboard.exe` und `dist\PasteKeyboard-Anleitung.pdf`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `CODESIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
 
 ## Hinweise
 
@@ -91,3 +102,4 @@ Das erzeugt `dist\PasteKeyboard.exe`. Signiert wird nur, wenn ein Zertifikats-Th
 - Nicht garantiert sind z. B. Emoji, CJK-Zeichen und viele Unicode-Sonderzeichen.
 - Wenn `Nicht unterstuetzte Zeichen ueberspringen` deaktiviert ist, bricht die Eingabe am ersten nicht abbildbaren Zeichen ab.
 - Globaler Hotkey und simulierte Tasteneingabe sind Windows-spezifisch.
+- Hotkey-Aufzeichnung uebernimmt nur Kombinationen mit mindestens einem Modifier, z. B. `Ctrl`, `Alt`, `Shift` oder `Win`.

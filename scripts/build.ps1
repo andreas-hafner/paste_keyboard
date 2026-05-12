@@ -2,10 +2,12 @@ param(
     [string]$Python = "python",
     [string]$SpecFile = "PasteKeyboard.spec",
     [string]$OutputFile = "dist\PasteKeyboard.exe",
+    [string]$DocumentationPdfFile = "dist\PasteKeyboard-Anleitung.pdf",
     [string]$Thumbprint = "",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
     [string]$SignTool = "",
     [switch]$SkipSigning,
+    [switch]$SkipDocs,
     [switch]$SkipTests
 )
 
@@ -150,6 +152,7 @@ $RepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $SpecPath = Resolve-RepoPath $SpecFile
 $OutputPath = Resolve-RepoPath $OutputFile
 $OutputDir = Split-Path -Parent $OutputPath
+$DocumentationPdfPath = Resolve-RepoPath $DocumentationPdfFile
 $BuildWorkPath = Resolve-RepoPath "build\script-work"
 $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
@@ -159,6 +162,7 @@ $EffectiveThumbprint = $ThumbprintConfig.Value
 Assert-UnderRepo $BuildWorkPath
 Assert-UnderRepo $BuildDistPath
 Assert-UnderRepo $OutputPath
+Assert-UnderRepo $DocumentationPdfPath
 
 if (-not (Test-Path -LiteralPath $SpecPath)) {
     throw "Spec file not found: $SpecPath"
@@ -196,6 +200,13 @@ if (-not (Test-Path -LiteralPath $BuiltExe)) {
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 Copy-Item -LiteralPath $BuiltExe -Destination $OutputPath -Force
 Write-Host "Built: $OutputPath"
+
+if (-not $SkipDocs) {
+    Write-Host "Building PDF documentation..."
+    & $Python (Resolve-RepoPath "scripts\build_docs_pdf.py") --output $DocumentationPdfFile
+} else {
+    Write-Host "Skipping PDF documentation because -SkipDocs was provided."
+}
 
 if (-not $SkipSigning -and $EffectiveThumbprint) {
     $signtoolPath = Find-SignTool

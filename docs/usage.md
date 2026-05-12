@@ -24,6 +24,8 @@ python main.py --minimized
 
 Mit `--minimized` startet die App direkt im Windows-Infobereich. Das Hauptfenster erscheint dann nicht als normaler Taskleisten-Button; geoeffnet und beendet wird die App ueber das Tray-Symbol.
 
+Es kann nur eine Instanz gleichzeitig laufen. Wenn bereits eine Instanz aktiv ist, beendet sich der zweite Start nach einem kurzen Hinweis.
+
 ## Einstellungen
 
 Die App speichert ihre Einstellungen pro Benutzer unter:
@@ -38,11 +40,12 @@ Diese Datei wird sowohl beim Start aus dem Quellcode als auch bei der gebauten E
 
 1. App mit `python main.py` starten.
 2. Ziel-Layout passend zum Testziel auswaehlen.
-3. Hotkey, Startverzoegerung und Tastendelay bei Bedarf anpassen.
-4. `Einstellungen speichern` klicken.
-5. Text in die Zwischenablage kopieren.
-6. Testziel fokussieren.
-7. Hotkey druecken oder die Eingabe ueber die GUI starten.
+3. Hotkey mit `Aufzeichnen` uebernehmen oder vorhandenen Hotkey beibehalten.
+4. Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung bei Bedarf anpassen.
+5. `Einstellungen speichern` klicken.
+6. Text in die Zwischenablage kopieren.
+7. Testziel fokussieren.
+8. Hotkey druecken oder die Eingabe ueber die GUI starten.
 
 Sinnvolle Testziele:
 
@@ -57,7 +60,21 @@ Empfohlene Testtexte:
 - `@ EUR { } [ ] \ | ~ ^`
 - mehrzeiliger Text
 - Tabs
-- ein sehr langer Text mit mehr als `1000` Zeichen fuer den Clipboard-Guard
+- ein sehr langer Text oberhalb des eingestellten Zwischenablage-Limits fuer den Clipboard-Guard
+- aktivierte `Benachrichtigung nach Tippvorgang`, um das lokale Abschluss-Popup zu pruefen
+
+## Screenshots aktualisieren
+
+Die Screenshots in `docs/screenshots` koennen aus dem Workspace heraus neu erzeugt werden:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\capture_screenshots.ps1
+```
+
+Das Script startet eine isolierte App-Instanz mit eigenen Test-Einstellungen unter `build\screenshot-appdata` und rendert:
+
+- `docs\screenshots\01-main-window.png`
+- `docs\screenshots\02-text-loaded.png`
 
 ## Tests
 

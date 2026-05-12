@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 from contextlib import contextmanager
+from dataclasses import fields
 from pathlib import Path
 import shutil
 import sys
@@ -52,6 +53,12 @@ class HotkeyParserTests(unittest.TestCase):
 
 
 class SettingsTests(unittest.TestCase):
+    def test_new_settings_fields_stay_after_skip_unsupported(self) -> None:
+        field_names = [field.name for field in fields(AppSettings)]
+
+        self.assertLess(field_names.index("skip_unsupported"), field_names.index("clipboard_typing_limit"))
+        self.assertLess(field_names.index("skip_unsupported"), field_names.index("notify_on_finish"))
+
     def test_save_and_load_settings(self) -> None:
         with make_temp_dir() as temp_dir:
             path = temp_dir / "nested" / "test-settings-save.json"
@@ -61,6 +68,8 @@ class SettingsTests(unittest.TestCase):
                 start_delay_ms=500,
                 key_delay_ms=15,
                 skip_unsupported=True,
+                clipboard_typing_limit=2500,
+                notify_on_finish=True,
             )
             save_settings(settings, path)
             loaded = load_settings(path)
@@ -120,6 +129,48 @@ class Win32InputTests(unittest.TestCase):
         self.assertEqual(ctypes.sizeof(win32.INPUT), expected_size)
         self.assertEqual(win32.INPUT._fields_[1][0], "data")
         self.assertGreaterEqual(ctypes.sizeof(win32.INPUTUNION), ctypes.sizeof(win32.KEYBDINPUT))
+
+
+class SingleInstanceLockTests(unittest.TestCase):
+    def test_acquire_returns_true_for_new_mutex(self) -> None:
+        lock = win32.SingleInstanceLock("test-lock")
+
+        with patch("paste_keyboard.win32.kernel32.CreateMutexW", return_value=123), patch(
+            "paste_keyboard.win32.kernel32.GetLastError", return_value=0
+        ):
+            acquired = lock.acquire()
+
+        self.assertTrue(acquired)
+        self.assertEqual(lock.handle, 123)
+        self.assertTrue(lock.acquired)
+
+    def test_acquire_returns_false_when_mutex_already_exists(self) -> None:
+        lock = win32.SingleInstanceLock("test-lock")
+
+        with patch("paste_keyboard.win32.kernel32.CreateMutexW", return_value=123), patch(
+            "paste_keyboard.win32.kernel32.GetLastError", return_value=win32.ERROR_ALREADY_EXISTS
+        ), patch("paste_keyboard.win32.kernel32.CloseHandle") as close_handle_mock:
+            acquired = lock.acquire()
+
+        self.assertFalse(acquired)
+        self.assertIsNone(lock.handle)
+        self.assertFalse(lock.acquired)
+        close_handle_mock.assert_called_once_with(123)
+
+    def test_close_releases_and_closes_acquired_mutex(self) -> None:
+        lock = win32.SingleInstanceLock("test-lock")
+        lock.handle = 123
+        lock.acquired = True
+
+        with patch("paste_keyboard.win32.kernel32.ReleaseMutex") as release_mutex_mock, patch(
+            "paste_keyboard.win32.kernel32.CloseHandle"
+        ) as close_handle_mock:
+            lock.close()
+
+        release_mutex_mock.assert_called_once_with(123)
+        close_handle_mock.assert_called_once_with(123)
+        self.assertIsNone(lock.handle)
+        self.assertFalse(lock.acquired)
 
 
 if __name__ == "__main__":

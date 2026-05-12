@@ -50,6 +50,8 @@ NIM_DELETE = 0x00000002
 NIF_MESSAGE = 0x00000001
 NIF_ICON = 0x00000002
 NIF_TIP = 0x00000004
+NIF_INFO = 0x00000010
+NIIF_INFO = 0x00000001
 
 MF_STRING = 0x00000000
 TPM_RIGHTBUTTON = 0x0002
@@ -60,12 +62,18 @@ TRAY_ICON_ID = 1
 TRAY_CALLBACK_MESSAGE = WM_APP + 1
 TRAY_COMMAND_SHOW = 1001
 TRAY_COMMAND_EXIT = 1002
+ERROR_ALREADY_EXISTS = 183
+MB_OK = 0x00000000
+MB_ICONINFORMATION = 0x00000040
+SINGLE_INSTANCE_MUTEX_NAME = "Local\\PasteKeyboardSingleInstance"
 
 VK_SHIFT = 0x10
 VK_CONTROL = 0x11
 VK_MENU = 0x12
 VK_LCONTROL = 0xA2
 VK_RMENU = 0xA5
+VK_LWIN = 0x5B
+VK_RWIN = 0x5C
 VK_RETURN = 0x0D
 VK_TAB = 0x09
 VK_SPACE = 0x20
@@ -272,6 +280,8 @@ user32.DispatchMessageW.restype = LONG_PTR
 WNDPROC = ctypes.WINFUNCTYPE(LONG_PTR, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
 user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 user32.DefWindowProcW.restype = LONG_PTR
+user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+user32.MessageBoxW.restype = ctypes.c_int
 user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASSW)]
 user32.RegisterClassW.restype = wintypes.ATOM
 user32.UnregisterClassW.argtypes = [wintypes.LPCWSTR, wintypes.HINSTANCE]
@@ -299,10 +309,62 @@ kernel32.GetCurrentThreadId.argtypes = []
 kernel32.GetCurrentThreadId.restype = wintypes.DWORD
 kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
 kernel32.GetModuleHandleW.restype = wintypes.HINSTANCE
+kernel32.GetLastError.argtypes = []
+kernel32.GetLastError.restype = wintypes.DWORD
+kernel32.CreateMutexW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR]
+kernel32.CreateMutexW.restype = wintypes.HANDLE
+kernel32.ReleaseMutex.argtypes = [wintypes.HANDLE]
+kernel32.ReleaseMutex.restype = wintypes.BOOL
+kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+kernel32.CloseHandle.restype = wintypes.BOOL
 
 
 class Win32Error(RuntimeError):
     pass
+
+
+class SingleInstanceLock:
+    def __init__(self, name: str = SINGLE_INSTANCE_MUTEX_NAME) -> None:
+        self.name = name
+        self.handle: wintypes.HANDLE | None = None
+        self.acquired = False
+
+    def acquire(self) -> bool:
+        if self.handle is not None:
+            return self.acquired
+
+        handle = kernel32.CreateMutexW(None, True, self.name)
+        if not handle:
+            raise Win32Error("Single-Instance-Sperre konnte nicht erstellt werden.")
+
+        if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+            kernel32.CloseHandle(handle)
+            return False
+
+        self.handle = handle
+        self.acquired = True
+        return True
+
+    def close(self) -> None:
+        if self.handle is None:
+            return
+        if self.acquired:
+            kernel32.ReleaseMutex(self.handle)
+        kernel32.CloseHandle(self.handle)
+        self.handle = None
+        self.acquired = False
+
+    def __enter__(self) -> SingleInstanceLock:
+        if not self.acquire():
+            raise Win32Error("Paste Keyboard laeuft bereits.")
+        return self
+
+    def __exit__(self, _exc_type, _exc, _traceback) -> None:
+        self.close()
+
+
+def show_info_message(title: str, message: str) -> None:
+    user32.MessageBoxW(None, message, title, MB_OK | MB_ICONINFORMATION)
 
 
 class HotkeyListener:
@@ -453,6 +515,16 @@ class TrayIcon:
         if self._icon_added and self.hwnd is not None:
             shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(self._notify_data()))
 
+    def notify(self, title: str, message: str) -> None:
+        if not self._icon_added or self.hwnd is None:
+            return
+        data = self._notify_data()
+        data.uFlags |= NIF_INFO
+        data.szInfoTitle = title[:63]
+        data.szInfo = message[:255]
+        data.dwInfoFlags = NIIF_INFO
+        shell32.Shell_NotifyIconW(NIM_MODIFY, ctypes.byref(data))
+
     def _delete_icon(self) -> None:
         if self._icon_added and self.hwnd is not None:
             shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(self._notify_data()))
@@ -593,6 +665,10 @@ def poll_hotkey_ids() -> list[int]:
     while user32.PeekMessageW(ctypes.byref(message), None, WM_HOTKEY, WM_HOTKEY, PM_REMOVE):
         hotkey_ids.append(int(message.wParam))
     return hotkey_ids
+
+
+def is_key_down(vk: int) -> bool:
+    return (user32.GetAsyncKeyState(vk) & 0x8000) != 0
 
 
 def _keyboard_input(scan_code: int, flags: int) -> INPUT:
