@@ -8,6 +8,29 @@ import time
 import uuid
 
 
+class _UnavailableWinFunction:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.argtypes = None
+        self.restype = None
+
+    def __call__(self, *_args, **_kwargs):
+        raise OSError(f"Windows API function {self.name} is not available on this platform.")
+
+
+class _UnavailableWinDLL:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self._functions: dict[str, _UnavailableWinFunction] = {}
+
+    def __getattr__(self, name: str) -> _UnavailableWinFunction:
+        function = self._functions.get(name)
+        if function is None:
+            function = _UnavailableWinFunction(f"{self.name}.{name}")
+            self._functions[name] = function
+        return function
+
+
 if ctypes.sizeof(ctypes.c_void_p) == 8:
     ULONG_PTR = ctypes.c_ulonglong
     LONG_PTR = ctypes.c_longlong
@@ -16,9 +39,22 @@ else:
     LONG_PTR = ctypes.c_long
 
 
-user32 = ctypes.WinDLL("user32", use_last_error=True)
-kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+if hasattr(ctypes, "WinDLL"):
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    shell32 = ctypes.WinDLL("shell32", use_last_error=True)
+    WNDPROC_FACTORY = ctypes.WINFUNCTYPE
+else:
+    wintypes.BOOL = ctypes.c_int
+    wintypes.BYTE = ctypes.c_ubyte
+    wintypes.DWORD = ctypes.c_uint32
+    wintypes.LONG = ctypes.c_int32
+    wintypes.UINT = ctypes.c_uint32
+    wintypes.WORD = ctypes.c_uint16
+    user32 = _UnavailableWinDLL("user32")
+    kernel32 = _UnavailableWinDLL("kernel32")
+    shell32 = _UnavailableWinDLL("shell32")
+    WNDPROC_FACTORY = ctypes.CFUNCTYPE
 
 INPUT_KEYBOARD = 1
 
@@ -277,7 +313,7 @@ user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, w
 user32.PostMessageW.restype = wintypes.BOOL
 user32.DispatchMessageW.argtypes = [ctypes.POINTER(MSG)]
 user32.DispatchMessageW.restype = LONG_PTR
-WNDPROC = ctypes.WINFUNCTYPE(LONG_PTR, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+WNDPROC = WNDPROC_FACTORY(LONG_PTR, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
 user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 user32.DefWindowProcW.restype = LONG_PTR
 user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]

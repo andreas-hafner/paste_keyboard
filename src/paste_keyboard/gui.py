@@ -270,11 +270,13 @@ class PasteKeyboardApp:
             self._set_status(f"Hotkey konnte nach Aufzeichnung nicht wieder aktiviert werden: {exc}")
 
     def _on_hotkey_capture_key(self, event: tk.Event) -> str:
+        if getattr(event, "keysym", "") == "Escape":
+            self._stop_hotkey_capture(restore_listener=True)
+            self._set_status("Hotkey-Aufzeichnung abgebrochen.")
+            return "break"
+
         captured = self._hotkey_from_key_event(event)
         if captured is None:
-            if getattr(event, "keysym", "") == "Escape":
-                self._stop_hotkey_capture(restore_listener=True)
-                self._set_status("Hotkey-Aufzeichnung abgebrochen.")
             return "break"
 
         self.hotkey_var.set(captured)
