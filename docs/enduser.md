@@ -2,6 +2,8 @@
 
 Diese Anleitung ist fuer die ausgelieferte `PasteKeyboard.exe` gedacht.
 
+English guide: [enduser.en.md](enduser.en.md)
+
 ## Zweck
 
 `Paste Keyboard` tippt Text aus der Zwischenablage per simulierten Tastendruecken ein. Das ist besonders nuetzlich fuer:
@@ -52,6 +54,8 @@ Beim naechsten Windows-Login startet `Paste Keyboard` dadurch minimiert im Infob
 
 Wichtige Felder:
 
+- `Sprache`
+  Schaltet die Oberflaeche zwischen Deutsch und Englisch um. Danach `Einstellungen speichern` klicken.
 - `Globaler Hotkey`
   Damit wird das Eintippen global ausgeloest. Das Feld ist readonly. Mit `Aufzeichnen` kann die Tastenkombination direkt gedrueckt und uebernommen werden; danach `Einstellungen speichern` klicken.
 - `Ziel-Layout`
@@ -69,12 +73,13 @@ Wichtige Felder:
 
 ## Typischer Ablauf
 
-1. Passendes `Ziel-Layout` auswaehlen.
-2. Einen Hotkey festlegen oder mit `Aufzeichnen` per Tastendruck uebernehmen.
-3. Auf `Einstellungen speichern` klicken.
-4. Den gewuenschten Text in die Zwischenablage kopieren.
-5. Das Zielfenster oder die VM-Konsole fokussieren.
-6. Den Hotkey druecken.
+1. Optional `Sprache` waehlen.
+2. Passendes `Ziel-Layout` auswaehlen.
+3. Einen Hotkey festlegen oder mit `Aufzeichnen` per Tastendruck uebernehmen.
+4. Auf `Einstellungen speichern` klicken.
+5. Den gewuenschten Text in die Zwischenablage kopieren.
+6. Das Zielfenster oder die VM-Konsole fokussieren.
+7. Den Hotkey druecken.
 
 ## Zwischenablage
 

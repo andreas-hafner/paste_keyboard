@@ -8,6 +8,7 @@ from tkinter import messagebox, scrolledtext, ttk
 from . import win32
 from .config import DEFAULT_SETTINGS, AppSettings, load_settings, save_settings
 from .hotkeys import ParsedHotkey, parse_hotkey
+from .i18n import SUPPORTED_LANGUAGES, language_label, normalize_language, translate
 from .layouts import BUILTIN_LAYOUTS
 from .typing import TypingError, type_text
 
@@ -66,7 +67,9 @@ class PasteKeyboardApp:
         self.hotkey_capture_active = False
         self.hotkey_capture_bind_id: str | None = None
         self.hotkey_capture_paused_hotkey: ParsedHotkey | None = None
+        self._localized_widgets: list[tuple[tk.Widget, str]] = []
 
+        self.language_var = tk.StringVar(value=language_label(self.settings.language))
         self.hotkey_var = tk.StringVar(value=self.settings.hotkey)
         self.layout_var = tk.StringVar(value=self.settings.layout_id)
         self.start_delay_var = tk.IntVar(value=self.settings.start_delay_ms)
@@ -77,7 +80,7 @@ class PasteKeyboardApp:
         self.status_var = tk.StringVar(value="")
 
         self._build_ui()
-        self._set_status("Bereit.")
+        self._set_status(self._t("ready"))
         self._setup_tray_icon()
         self._register_hotkey_from_form(initial=True)
         self._poll_hotkeys()
@@ -157,63 +160,78 @@ class PasteKeyboardApp:
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(1, weight=1)
 
-        settings_frame = ttk.LabelFrame(self.root, text="Einstellungen", padding=12)
+        settings_frame = ttk.LabelFrame(self.root, padding=12)
+        self._localize(settings_frame, "settings")
         settings_frame.grid(row=0, column=0, padx=12, pady=12, sticky="nsew")
         settings_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(settings_frame, text="Globaler Hotkey").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
+        self._localized_label(settings_frame, "language").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
+        language_combo = ttk.Combobox(
+            settings_frame,
+            textvariable=self.language_var,
+            state="readonly",
+            values=list(SUPPORTED_LANGUAGES.values()),
+        )
+        language_combo.grid(row=0, column=1, sticky="ew", pady=4)
+        language_combo.bind("<<ComboboxSelected>>", self._on_language_changed)
+
+        self._localized_label(settings_frame, "hotkey").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
         hotkey_frame = ttk.Frame(settings_frame)
-        hotkey_frame.grid(row=0, column=1, sticky="ew", pady=4)
+        hotkey_frame.grid(row=1, column=1, sticky="ew", pady=4)
         hotkey_frame.columnconfigure(0, weight=1)
         self.hotkey_entry = ttk.Entry(hotkey_frame, textvariable=self.hotkey_var, state="readonly")
         self.hotkey_entry.grid(row=0, column=0, sticky="ew")
-        self.hotkey_capture_button = ttk.Button(hotkey_frame, text="Aufzeichnen", command=self._toggle_hotkey_capture)
+        self.hotkey_capture_button = ttk.Button(hotkey_frame, command=self._toggle_hotkey_capture)
+        self._localize(self.hotkey_capture_button, "record")
         self.hotkey_capture_button.grid(row=0, column=1, padx=(8, 0))
 
-        ttk.Label(settings_frame, text="Ziel-Layout").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
+        self._localized_label(settings_frame, "layout").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
         layout_combo = ttk.Combobox(
             settings_frame,
             textvariable=self.layout_var,
             state="readonly",
             values=list(BUILTIN_LAYOUTS.keys()),
         )
-        layout_combo.grid(row=1, column=1, sticky="ew", pady=4)
+        layout_combo.grid(row=2, column=1, sticky="ew", pady=4)
 
-        ttk.Label(settings_frame, text="Startverzoegerung (ms)").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=4)
-        ttk.Spinbox(settings_frame, from_=0, to=5000, increment=50, textvariable=self.start_delay_var).grid(row=2, column=1, sticky="ew", pady=4)
+        self._localized_label(settings_frame, "start_delay").grid(row=3, column=0, sticky="w", padx=(0, 8), pady=4)
+        ttk.Spinbox(settings_frame, from_=0, to=5000, increment=50, textvariable=self.start_delay_var).grid(row=3, column=1, sticky="ew", pady=4)
 
-        ttk.Label(settings_frame, text="Tastendelay (ms)").grid(row=3, column=0, sticky="w", padx=(0, 8), pady=4)
-        ttk.Spinbox(settings_frame, from_=0, to=1000, increment=5, textvariable=self.key_delay_var).grid(row=3, column=1, sticky="ew", pady=4)
+        self._localized_label(settings_frame, "key_delay").grid(row=4, column=0, sticky="w", padx=(0, 8), pady=4)
+        ttk.Spinbox(settings_frame, from_=0, to=1000, increment=5, textvariable=self.key_delay_var).grid(row=4, column=1, sticky="ew", pady=4)
 
-        ttk.Label(settings_frame, text="Zwischenablage-Limit beim Tippen").grid(row=4, column=0, sticky="w", padx=(0, 8), pady=4)
+        self._localized_label(settings_frame, "clipboard_limit").grid(row=5, column=0, sticky="w", padx=(0, 8), pady=4)
         ttk.Spinbox(
             settings_frame,
             from_=1,
             to=1000000,
             increment=100,
             textvariable=self.clipboard_typing_limit_var,
-        ).grid(row=4, column=1, sticky="ew", pady=4)
+        ).grid(row=5, column=1, sticky="ew", pady=4)
 
-        ttk.Checkbutton(
+        skip_check = ttk.Checkbutton(
             settings_frame,
-            text="Nicht unterstuetzte Zeichen ueberspringen",
             variable=self.skip_unsupported_var,
-        ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        )
+        self._localize(skip_check, "skip_unsupported")
+        skip_check.grid(row=6, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
-        ttk.Checkbutton(
+        notify_check = ttk.Checkbutton(
             settings_frame,
-            text="Benachrichtigung nach Tippvorgang",
             variable=self.notify_on_finish_var,
-        ).grid(row=6, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        )
+        self._localize(notify_check, "notify_on_finish")
+        notify_check.grid(row=7, column=0, columnspan=2, sticky="w", pady=(4, 0))
 
         button_frame = ttk.Frame(settings_frame)
-        button_frame.grid(row=7, column=0, columnspan=2, sticky="w", pady=(10, 0))
+        button_frame.grid(row=8, column=0, columnspan=2, sticky="w", pady=(10, 0))
 
-        ttk.Button(button_frame, text="Einstellungen speichern", command=self._save_settings).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(button_frame, text="Zwischenablage tippen", command=self._type_clipboard_from_button).grid(row=0, column=1, padx=(0, 8))
-        ttk.Button(button_frame, text="Zwischenablage laden", command=self._load_clipboard_into_editor).grid(row=0, column=2)
+        self._localized_button(button_frame, "save_settings", self._save_settings).grid(row=0, column=0, padx=(0, 8))
+        self._localized_button(button_frame, "type_clipboard", self._type_clipboard_from_button).grid(row=0, column=1, padx=(0, 8))
+        self._localized_button(button_frame, "load_clipboard", self._load_clipboard_into_editor).grid(row=0, column=2)
 
-        editor_frame = ttk.LabelFrame(self.root, text="Test- / Vorschautext", padding=12)
+        editor_frame = ttk.LabelFrame(self.root, padding=12)
+        self._localize(editor_frame, "preview_text")
         editor_frame.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
         editor_frame.columnconfigure(0, weight=1)
         editor_frame.rowconfigure(0, weight=1)
@@ -223,13 +241,47 @@ class PasteKeyboardApp:
 
         editor_buttons = ttk.Frame(editor_frame)
         editor_buttons.grid(row=1, column=0, sticky="w", pady=(10, 0))
-        ttk.Button(editor_buttons, text="Textfeld tippen", command=self._type_editor_text).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(editor_buttons, text="Textfeld leeren", command=lambda: self.editor.delete("1.0", "end")).grid(row=0, column=1)
+        self._localized_button(editor_buttons, "type_editor", self._type_editor_text).grid(row=0, column=0, padx=(0, 8))
+        self._localized_button(editor_buttons, "clear_editor", lambda: self.editor.delete("1.0", "end")).grid(row=0, column=1)
+
+    def _localized_label(self, parent: tk.Widget, key: str) -> ttk.Label:
+        label = ttk.Label(parent)
+        self._localize(label, key)
+        return label
+
+    def _localized_button(self, parent: tk.Widget, key: str, command) -> ttk.Button:
+        button = ttk.Button(parent, command=command)
+        self._localize(button, key)
+        return button
+
+    def _localize(self, widget: tk.Widget, key: str) -> None:
+        self._localized_widgets.append((widget, key))
+        widget.configure(text=self._t(key))
+
+    def _apply_language(self) -> None:
+        self.language_var.set(language_label(self._language()))
+        for widget, key in self._localized_widgets:
+            widget.configure(text=self._t(key))
+        if self.hotkey_capture_active:
+            self.hotkey_capture_button.configure(text=self._t("cancel"))
+
+    def _on_language_changed(self, _event: tk.Event | None = None) -> None:
+        self._apply_language()
+        self._set_status(self._t("ready"))
+
+    def _language(self) -> str:
+        try:
+            return normalize_language(self.language_var.get())
+        except (AttributeError, tk.TclError):
+            return DEFAULT_SETTINGS.language
+
+    def _t(self, key: str, **kwargs) -> str:
+        return translate(self._language(), key, **kwargs)
 
     def _toggle_hotkey_capture(self) -> None:
         if self.hotkey_capture_active:
             self._stop_hotkey_capture(restore_listener=True)
-            self._set_status("Hotkey-Aufzeichnung abgebrochen.")
+            self._set_status(self._t("hotkey_capture_cancelled"))
             return
         self._start_hotkey_capture()
 
@@ -241,12 +293,12 @@ class PasteKeyboardApp:
             self.hotkey_listener = None
 
         self.hotkey_entry.configure(state="normal")
-        self.hotkey_capture_button.configure(text="Abbrechen")
+        self.hotkey_capture_button.configure(text=self._t("cancel"))
         self.hotkey_capture_bind_id = self.hotkey_entry.bind("<KeyPress>", self._on_hotkey_capture_key, add="+")
         self.hotkey_entry.focus_set()
         self.hotkey_entry.selection_range(0, "end")
         self.hotkey_entry.configure(state="readonly")
-        self._set_status("Hotkey-Aufzeichnung aktiv: Tastenkombination druecken. Escape bricht ab.")
+        self._set_status(self._t("hotkey_capture_active"))
 
     def _stop_hotkey_capture(self, restore_listener: bool) -> None:
         if self.hotkey_capture_bind_id is not None:
@@ -254,7 +306,7 @@ class PasteKeyboardApp:
             self.hotkey_capture_bind_id = None
         self.hotkey_capture_active = False
         self.hotkey_entry.configure(state="readonly")
-        self.hotkey_capture_button.configure(text="Aufzeichnen")
+        self.hotkey_capture_button.configure(text=self._t("record"))
         if restore_listener:
             self._restore_hotkey_listener_after_capture()
         self.hotkey_capture_paused_hotkey = None
@@ -267,12 +319,12 @@ class PasteKeyboardApp:
             self.current_hotkey = self.hotkey_capture_paused_hotkey
         except win32.Win32Error as exc:
             self.current_hotkey = None
-            self._set_status(f"Hotkey konnte nach Aufzeichnung nicht wieder aktiviert werden: {exc}")
+            self._set_status(self._t("hotkey_restore_failed", error=exc))
 
     def _on_hotkey_capture_key(self, event: tk.Event) -> str:
         if getattr(event, "keysym", "") == "Escape":
             self._stop_hotkey_capture(restore_listener=True)
-            self._set_status("Hotkey-Aufzeichnung abgebrochen.")
+            self._set_status(self._t("hotkey_capture_cancelled"))
             return "break"
 
         captured = self._hotkey_from_key_event(event)
@@ -281,7 +333,7 @@ class PasteKeyboardApp:
 
         self.hotkey_var.set(captured)
         self._stop_hotkey_capture(restore_listener=True)
-        self._set_status(f"Hotkey uebernommen: {captured}. Einstellungen speichern, um ihn zu aktivieren.")
+        self._set_status(self._t("hotkey_captured", hotkey=captured))
         return "break"
 
     def _hotkey_from_key_event(self, event: tk.Event) -> str | None:
@@ -344,6 +396,7 @@ class PasteKeyboardApp:
 
     def _collect_settings(self) -> AppSettings:
         return AppSettings(
+            language=self._language(),
             hotkey=self.hotkey_var.get().strip(),
             layout_id=self.layout_var.get().strip(),
             start_delay_ms=int(self.start_delay_var.get()),
@@ -358,25 +411,25 @@ class PasteKeyboardApp:
             settings = self._collect_settings()
             parsed = parse_hotkey(settings.hotkey)
             if settings.layout_id not in BUILTIN_LAYOUTS:
-                raise ValueError("Bitte ein gueltiges Ziel-Layout waehlen.")
+                raise ValueError(self._t("valid_layout_required"))
             if settings.clipboard_typing_limit < 1:
-                raise ValueError("Zwischenablage-Limit muss mindestens 1 sein.")
+                raise ValueError(self._t("clipboard_limit_min"))
         except (ValueError, tk.TclError) as exc:
-            messagebox.showerror("Ungueltige Einstellungen", str(exc))
+            messagebox.showerror(self._t("invalid_settings"), str(exc))
             return
 
         try:
             self._register_hotkey(parsed)
         except win32.Win32Error as exc:
-            message = f"Hotkey konnte nicht aktiviert werden: {exc} {self._active_hotkey_status()}"
-            self._set_status(f"Einstellungen nicht gespeichert. {message}")
-            messagebox.showerror("Hotkey nicht gespeichert", message)
+            message = self._t("hotkey_enable_failed", error=exc, active=self._active_hotkey_status())
+            self._set_status(self._t("settings_not_saved", message=message))
+            messagebox.showerror(self._t("hotkey_not_saved"), message)
             return
 
         self.settings = settings
         self.hotkey_var.set(parsed.display)
         save_settings(settings)
-        self._set_status(f"Einstellungen gespeichert. Hotkey aktiv: {parsed.display}")
+        self._set_status(self._t("settings_saved", hotkey=parsed.display))
 
     def _register_hotkey_from_form(self, initial: bool = False) -> None:
         try:
@@ -384,13 +437,13 @@ class PasteKeyboardApp:
             self.hotkey_var.set(parsed.display)
             self._register_hotkey(parsed)
             if initial:
-                self._set_status(f"Bereit. Hotkey aktiv: {parsed.display}")
+                self._set_status(self._t("ready_hotkey", hotkey=parsed.display))
         except ValueError as exc:
             if initial:
-                self._set_status(f"Hotkey ungueltig: {exc}")
+                self._set_status(self._t("hotkey_invalid", error=exc))
         except win32.Win32Error as exc:
             if initial:
-                self._set_status(f"Hotkey nicht aktiv: {exc}")
+                self._set_status(self._t("hotkey_not_active", error=exc))
 
     def _register_hotkey(self, parsed: ParsedHotkey) -> None:
         if parsed == self.current_hotkey and self.hotkey_listener is not None:
@@ -434,8 +487,8 @@ class PasteKeyboardApp:
 
     def _active_hotkey_status(self) -> str:
         if self.current_hotkey is None:
-            return "Kein Hotkey aktiv."
-        return f"Hotkey weiter aktiv: {self.current_hotkey.display}"
+            return self._t("no_active_hotkey")
+        return self._t("hotkey_still_active", hotkey=self.current_hotkey.display)
 
     def _poll_hotkeys(self) -> None:
         while True:
@@ -455,10 +508,10 @@ class PasteKeyboardApp:
             text = self.root.clipboard_get()
         except tk.TclError as exc:
             raise RuntimeError(
-                "Zwischenablage enthaelt keinen Text. Bilder, Dateien und andere Formate werden nicht unterstuetzt."
+                self._t("clipboard_no_text")
             ) from exc
         if not text:
-            raise RuntimeError("Zwischenablage ist leer.")
+            raise RuntimeError(self._t("clipboard_empty"))
         return text
 
     def _load_clipboard_text_for_typing(self) -> str:
@@ -466,7 +519,7 @@ class PasteKeyboardApp:
         limit = self._clipboard_typing_limit()
         if len(text) > limit:
             raise RuntimeError(
-                f"Zwischenablage ist zu gross zum Tippen ({len(text)} Zeichen, Limit {limit})."
+                self._t("clipboard_too_large", count=len(text), limit=limit)
             )
         return text
 
@@ -484,19 +537,19 @@ class PasteKeyboardApp:
         try:
             text = self._load_clipboard_text()
         except RuntimeError as exc:
-            messagebox.showerror("Zwischenablage", str(exc))
+            messagebox.showerror(self._t("clipboard"), str(exc))
             return
         self.editor.delete("1.0", "end")
         self.editor.insert("1.0", text)
-        self._set_status("Zwischenablage in das Textfeld geladen.")
+        self._set_status(self._t("clipboard_loaded"))
 
     def _type_clipboard_from_button(self) -> None:
         try:
             text = self._load_clipboard_text_for_typing()
         except RuntimeError as exc:
-            messagebox.showerror("Zwischenablage", str(exc))
+            messagebox.showerror(self._t("clipboard"), str(exc))
             return
-        self._start_typing(text, source_label="Zwischenablage")
+        self._start_typing(text, source_label=self._t("source_clipboard"))
 
     def _type_clipboard_from_hotkey(self) -> None:
         try:
@@ -504,32 +557,32 @@ class PasteKeyboardApp:
         except RuntimeError as exc:
             self._set_status(str(exc))
             return
-        self._start_typing(text, source_label="Zwischenablage via Hotkey")
+        self._start_typing(text, source_label=self._t("source_clipboard_hotkey"))
 
     def _type_editor_text(self) -> None:
         text = self.editor.get("1.0", "end-1c")
         if not text:
-            messagebox.showerror("Textfeld", "Im Textfeld steht nichts.")
+            messagebox.showerror(self._t("source_editor"), self._t("editor_empty"))
             return
-        self._start_typing(text, source_label="Textfeld")
+        self._start_typing(text, source_label=self._t("source_editor"))
 
     def _start_typing(self, text: str, source_label: str) -> None:
         if self.typing_in_progress:
-            self._set_status("Es laeuft bereits ein Tippvorgang.")
+            self._set_status(self._t("typing_in_progress"))
             return
 
         try:
             settings = self._collect_settings()
             if settings.layout_id not in BUILTIN_LAYOUTS:
-                raise ValueError("Bitte ein gueltiges Ziel-Layout waehlen.")
+                raise ValueError(self._t("valid_layout_required"))
             if settings.clipboard_typing_limit < 1:
-                raise ValueError("Zwischenablage-Limit muss mindestens 1 sein.")
+                raise ValueError(self._t("clipboard_limit_min"))
         except (ValueError, tk.TclError) as exc:
-            messagebox.showerror("Ungueltige Einstellungen", str(exc))
+            messagebox.showerror(self._t("invalid_settings"), str(exc))
             return
 
         self.typing_in_progress = True
-        self._set_status(f"{source_label}: sende Tastendruecke...")
+        self._set_status(self._t("typing_sending", source=source_label))
 
         thread = threading.Thread(
             target=self._typing_worker,
@@ -552,15 +605,15 @@ class PasteKeyboardApp:
             self.root.after(0, lambda message=message: self._finish_typing(error=message))
             return
         except Exception as exc:
-            message = f"Unerwarteter Fehler: {exc}"
+            message = translate(settings.language, "unexpected_error", error=exc)
             self.root.after(0, lambda message=message: self._finish_typing(error=message))
             return
 
         def finish() -> None:
-            message = "Einfuegen beendet."
+            message = self._t("paste_finished")
             if skipped:
                 rendered = ", ".join(ch.encode("unicode_escape").decode("ascii") for ch in skipped[:8])
-                message = f"{message} Uebersprungen: {rendered}"
+                message = f"{message} {self._t('skipped', chars=rendered)}"
             self._finish_typing(success=message)
 
         self.root.after(0, finish)

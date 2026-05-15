@@ -3,6 +3,7 @@ param(
     [string]$SpecFile = "PasteKeyboard.spec",
     [string]$OutputFile = "dist\PasteKeyboard.exe",
     [string]$DocumentationPdfFile = "dist\PasteKeyboard-Anleitung.pdf",
+    [string]$EnglishDocumentationPdfFile = "dist\PasteKeyboard-Guide.pdf",
     [string]$Thumbprint = "",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
     [string]$SignTool = "",
@@ -153,6 +154,7 @@ $SpecPath = Resolve-RepoPath $SpecFile
 $OutputPath = Resolve-RepoPath $OutputFile
 $OutputDir = Split-Path -Parent $OutputPath
 $DocumentationPdfPath = Resolve-RepoPath $DocumentationPdfFile
+$EnglishDocumentationPdfPath = Resolve-RepoPath $EnglishDocumentationPdfFile
 $BuildWorkPath = Resolve-RepoPath "build\script-work"
 $BuildDistPath = Resolve-RepoPath "build\script-dist"
 $BuiltExe = Join-Path $BuildDistPath "PasteKeyboard.exe"
@@ -163,6 +165,7 @@ Assert-UnderRepo $BuildWorkPath
 Assert-UnderRepo $BuildDistPath
 Assert-UnderRepo $OutputPath
 Assert-UnderRepo $DocumentationPdfPath
+Assert-UnderRepo $EnglishDocumentationPdfPath
 
 if (-not (Test-Path -LiteralPath $SpecPath)) {
     throw "Spec file not found: $SpecPath"
@@ -202,8 +205,10 @@ Copy-Item -LiteralPath $BuiltExe -Destination $OutputPath -Force
 Write-Host "Built: $OutputPath"
 
 if (-not $SkipDocs) {
-    Write-Host "Building PDF documentation..."
-    & $Python (Resolve-RepoPath "scripts\build_docs_pdf.py") --output $DocumentationPdfFile
+    Write-Host "Building German PDF documentation..."
+    & $Python (Resolve-RepoPath "scripts\build_docs_pdf.py") --source "docs\enduser.md" --output $DocumentationPdfFile --lang "de" --title "Paste Keyboard Anleitung"
+    Write-Host "Building English PDF documentation..."
+    & $Python (Resolve-RepoPath "scripts\build_docs_pdf.py") --source "docs\enduser.en.md" --output $EnglishDocumentationPdfFile --lang "en" --title "Paste Keyboard Guide"
 } else {
     Write-Host "Skipping PDF documentation because -SkipDocs was provided."
 }

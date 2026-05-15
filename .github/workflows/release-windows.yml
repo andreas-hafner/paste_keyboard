@@ -51,8 +51,11 @@ jobs:
           if (-not (Test-Path -LiteralPath "dist\PasteKeyboard-Anleitung.pdf")) {
             throw "Missing expected documentation output: dist\PasteKeyboard-Anleitung.pdf"
           }
+          if (-not (Test-Path -LiteralPath "dist\PasteKeyboard-Guide.pdf")) {
+            throw "Missing expected documentation output: dist\PasteKeyboard-Guide.pdf"
+          }
           Compress-Archive `
-            -Path "dist\PasteKeyboard.exe", "dist\PasteKeyboard-Anleitung.pdf" `
+            -Path "dist\PasteKeyboard.exe", "dist\PasteKeyboard-Anleitung.pdf", "dist\PasteKeyboard-Guide.pdf" `
             -DestinationPath $archive
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $archive)).Entries |

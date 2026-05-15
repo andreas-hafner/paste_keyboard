@@ -2,9 +2,12 @@
 
 `Paste Keyboard` ist ein kleines Windows-Werkzeug, das Text aus der Zwischenablage als simulierte Tastendruecke eintippt. Das ist besonders nuetzlich fuer Browser-basierte VM-Konsolen wie Proxmox/noVNC, in denen normales Copy & Paste oft nicht zuverlaessig funktioniert.
 
+English summary: `Paste Keyboard` is a small Windows tool that types clipboard text as simulated keystrokes. It is useful for browser-based VM consoles such as Proxmox/noVNC where normal copy and paste is unreliable.
+
 ## Kurzueberblick
 
 - Windows-Desktop-App mit `tkinter`
+- Oberflaeche auf Deutsch oder Englisch umschaltbar
 - globaler Hotkey zum Ausloesen, per `Aufzeichnen` direkt ueber Tastendruck setzbar
 - Ziel-Layout umschaltbar:
   - `de-DE`
@@ -52,11 +55,12 @@ Autostart einrichten:
 
 Danach:
 
-1. Ziel-Layout waehlen.
-2. Optional Hotkey mit `Aufzeichnen`, Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung anpassen.
-3. Text in die Zwischenablage kopieren.
-4. Ziel in der VM-Konsole fokussieren.
-5. Hotkey druecken oder `Zwischenablage tippen` verwenden.
+1. Optional `Sprache` / `Language` waehlen.
+2. Ziel-Layout waehlen.
+3. Optional Hotkey mit `Aufzeichnen` / `Record`, Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung anpassen.
+4. Text in die Zwischenablage kopieren.
+5. Ziel in der VM-Konsole fokussieren.
+6. Hotkey druecken oder `Zwischenablage tippen` / `Type clipboard` verwenden.
 
 Hinweis:
 
@@ -74,8 +78,11 @@ Hinweis:
 ## Dokumentation
 
 - [Endanwender-Anleitung fuer die EXE](docs/enduser.md)
+- [End User Guide](docs/enduser.en.md)
 - [Nutzung aus dem Quellcode](docs/usage.md)
+- [Source Usage](docs/usage.en.md)
 - [Windows-Build-Anleitung](docs/build.md)
+- [Windows Build Guide](docs/build.en.md)
 
 ## Tests
 
@@ -89,7 +96,7 @@ python -m unittest discover -s tests -v
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
 
-Das erzeugt `dist\PasteKeyboard.exe` und `dist\PasteKeyboard-Anleitung.pdf`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `CODESIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
+Das erzeugt `dist\PasteKeyboard.exe`, `dist\PasteKeyboard-Anleitung.pdf` und `dist\PasteKeyboard-Guide.pdf`. Signiert wird nur, wenn ein Zertifikats-Thumbprint per `-Thumbprint` oder `CODESIGN_THUMBPRINT` bereitgestellt wird. Details stehen in [docs/build.md](docs/build.md).
 
 ## Hinweise
 

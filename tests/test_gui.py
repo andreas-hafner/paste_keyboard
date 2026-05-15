@@ -70,6 +70,32 @@ class GuiHotkeyTests(unittest.TestCase):
 
         self.assertEqual(app._load_clipboard_text_for_typing(), "x" * 1500)
 
+    def test_english_language_translates_clipboard_limit_error(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.root = Mock()
+        app.root.clipboard_get.return_value = "x" * 3
+        app.clipboard_typing_limit_var = DummyVar(2)
+        app.language_var = DummyVar("English")
+
+        with self.assertRaisesRegex(RuntimeError, "Clipboard is too large to type"):
+            app._load_clipboard_text_for_typing()
+
+    def test_collect_settings_stores_language_code(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        app.language_var = DummyVar("English")
+        app.hotkey_var = DummyVar("Ctrl+Alt+V")
+        app.layout_var = DummyVar("en-US")
+        app.start_delay_var = DummyVar(250)
+        app.key_delay_var = DummyVar(25)
+        app.skip_unsupported_var = DummyVar(False)
+        app.clipboard_typing_limit_var = DummyVar(1000)
+        app.notify_on_finish_var = DummyVar(True)
+
+        settings = app._collect_settings()
+
+        self.assertEqual(settings.language, "en")
+        self.assertEqual(settings.layout_id, "en-US")
+
     def test_load_clipboard_into_editor_allows_large_text(self) -> None:
         large_text = "x" * (gui.MAX_CLIPBOARD_TEXT_CHARS + 1)
         app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
@@ -376,6 +402,17 @@ class GuiHotkeyTests(unittest.TestCase):
         restored_listener.start.assert_called_once()
         self.assertIs(app.hotkey_listener, restored_listener)
         self.assertEqual(app.current_hotkey, old_hotkey)
+
+    def test_apply_language_updates_registered_widgets(self) -> None:
+        app = gui.PasteKeyboardApp.__new__(gui.PasteKeyboardApp)
+        label = Mock()
+        app.language_var = DummyVar("English")
+        app._localized_widgets = [(label, "save_settings")]
+        app.hotkey_capture_active = False
+
+        app._apply_language()
+
+        label.configure.assert_called_once_with(text="Save settings")
 
 
 if __name__ == "__main__":

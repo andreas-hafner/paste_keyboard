@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 
+from .i18n import DEFAULT_LANGUAGE, normalize_language
+
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -22,6 +24,7 @@ SETTINGS_PATH = STATE_DIR / "settings.json"
 
 @dataclass(slots=True)
 class AppSettings:
+    language: str = DEFAULT_LANGUAGE
     hotkey: str = "Ctrl+Alt+V"
     layout_id: str = "de-DE"
     start_delay_ms: int = 250
@@ -56,6 +59,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> AppSettings:
         return AppSettings()
 
     return AppSettings(
+        language=normalize_language(data.get("language", DEFAULT_SETTINGS.language)),
         hotkey=str(data.get("hotkey", DEFAULT_SETTINGS.hotkey)),
         layout_id=str(data.get("layout_id", DEFAULT_SETTINGS.layout_id)),
         start_delay_ms=_clamp_int(data.get("start_delay_ms"), DEFAULT_SETTINGS.start_delay_ms, 0, 5000),

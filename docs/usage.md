@@ -2,6 +2,8 @@
 
 Diese Datei beschreibt den Start und die manuelle Pruefung aus dem Repository heraus. Die vollstaendige Anleitung fuer ausgelieferte Nutzer der fertigen EXE steht in der [Endanwender-Anleitung](enduser.md).
 
+English guide: [usage.en.md](usage.en.md)
+
 ## Voraussetzungen
 
 - Windows
@@ -35,17 +37,19 @@ Die App speichert ihre Einstellungen pro Benutzer unter:
 ```
 
 Diese Datei wird sowohl beim Start aus dem Quellcode als auch bei der gebauten EXE verwendet.
+Gespeichert werden auch die App-Sprache, der Hotkey, das Ziel-Layout, Delays, Zwischenablage-Limit, Zeichenverhalten und Benachrichtigungsoption.
 
 ## Typischer Entwicklungs-Check
 
 1. App mit `python main.py` starten.
-2. Ziel-Layout passend zum Testziel auswaehlen.
-3. Hotkey mit `Aufzeichnen` uebernehmen oder vorhandenen Hotkey beibehalten.
-4. Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung bei Bedarf anpassen.
-5. `Einstellungen speichern` klicken.
-6. Text in die Zwischenablage kopieren.
-7. Testziel fokussieren.
-8. Hotkey druecken oder die Eingabe ueber die GUI starten.
+2. Deutsch oder Englisch unter `Sprache` waehlen.
+3. Ziel-Layout passend zum Testziel auswaehlen.
+4. Hotkey mit `Aufzeichnen` uebernehmen oder vorhandenen Hotkey beibehalten.
+5. Startverzoegerung, Tastendelay, Zwischenablage-Limit und Benachrichtigung bei Bedarf anpassen.
+6. `Einstellungen speichern` klicken.
+7. Text in die Zwischenablage kopieren.
+8. Testziel fokussieren.
+9. Hotkey druecken oder die Eingabe ueber die GUI starten.
 
 Sinnvolle Testziele:
 

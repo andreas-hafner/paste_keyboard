@@ -63,6 +63,7 @@ class SettingsTests(unittest.TestCase):
         with make_temp_dir() as temp_dir:
             path = temp_dir / "nested" / "test-settings-save.json"
             settings = AppSettings(
+                language="en",
                 hotkey="Ctrl+Shift+F8",
                 layout_id="en-US-intl",
                 start_delay_ms=500,
@@ -103,6 +104,14 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(loaded, AppSettings())
         self.assertFalse(custom_parent_exists)
         self.assertFalse(global_exists)
+
+    def test_load_settings_normalizes_unknown_language_to_default(self) -> None:
+        with make_temp_dir() as temp_dir:
+            path = temp_dir / "settings.json"
+            path.write_text('{"language": "fr"}', encoding="utf-8")
+            loaded = load_settings(path)
+
+        self.assertEqual(loaded.language, "de")
 
     def test_save_settings_with_custom_path_creates_only_target_parent(self) -> None:
         with make_temp_dir() as temp_dir:

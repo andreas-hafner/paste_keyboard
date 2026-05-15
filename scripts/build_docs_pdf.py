@@ -17,6 +17,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build the end-user PDF documentation.")
     parser.add_argument("--source", default="docs/enduser.md", help="Markdown source file.")
     parser.add_argument("--output", default="dist/PasteKeyboard-Anleitung.pdf", help="PDF output file.")
+    parser.add_argument("--lang", default="de", help="HTML language code.")
+    parser.add_argument("--title", default="Paste Keyboard Anleitung", help="HTML document title.")
     return parser.parse_args()
 
 
@@ -138,13 +140,13 @@ def markdown_to_html(markdown: str) -> str:
     return "\n".join(html_lines)
 
 
-def build_html(markdown: str) -> str:
+def build_html(markdown: str, lang: str, title: str) -> str:
     body = markdown_to_html(markdown)
     return f"""<!doctype html>
-<html lang="de">
+<html lang="{html.escape(lang, quote=True)}">
 <head>
   <meta charset="utf-8">
-  <title>Paste Keyboard Anleitung</title>
+  <title>{html.escape(title)}</title>
   <style>
     @page {{ margin: 18mm; }}
     body {{
@@ -217,7 +219,7 @@ def main() -> int:
         temp_path = Path(temp_dir)
         html_path = temp_path / "PasteKeyboard-Anleitung.html"
         user_data_dir = temp_path / "browser-profile"
-        html_path.write_text(build_html(source.read_text(encoding="utf-8")), encoding="utf-8")
+        html_path.write_text(build_html(source.read_text(encoding="utf-8"), args.lang, args.title), encoding="utf-8")
         print_pdf(browser, html_path, output, user_data_dir)
 
     print(f"Built PDF: {output}")

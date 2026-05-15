@@ -1,5 +1,7 @@
 # Windows-Build
 
+English guide: [build.en.md](build.en.md)
+
 ## Ziel
 
 Diese Anleitung beschreibt einen reproduzierbaren Weg, um aus dem Projekt eine Windows-`.exe` zu bauen und zu signieren.
@@ -36,14 +38,16 @@ Das Script fuehrt standardmaessig aus:
 1. Unit-Tests
 2. PyInstaller-Build aus `PasteKeyboard.spec`
 3. Kopie nach `dist\PasteKeyboard.exe`
-4. PDF-Erzeugung aus `docs\enduser.md` nach `dist\PasteKeyboard-Anleitung.pdf`
-5. Signatur mit SHA256 und DigiCert-Timestamp, wenn ein Thumbprint uebergeben oder per Environment Variable gesetzt ist
-6. Signaturpruefung mit `signtool verify /pa /v`, wenn signiert wurde
+4. deutsche PDF-Erzeugung aus `docs\enduser.md` nach `dist\PasteKeyboard-Anleitung.pdf`
+5. englische PDF-Erzeugung aus `docs\enduser.en.md` nach `dist\PasteKeyboard-Guide.pdf`
+6. Signatur mit SHA256 und DigiCert-Timestamp, wenn ein Thumbprint uebergeben oder per Environment Variable gesetzt ist
+7. Signaturpruefung mit `signtool verify /pa /v`, wenn signiert wurde
 
 Ergebnis:
 
 - `dist\PasteKeyboard.exe`
 - `dist\PasteKeyboard-Anleitung.pdf`
+- `dist\PasteKeyboard-Guide.pdf`
 - Laufzeiteinstellungen werden unter `%APPDATA%\PasteKeyboard\settings.json` gespeichert
 
 Ohne Thumbprint wird der Build bewusst ohne Signatur abgeschlossen.
@@ -115,6 +119,12 @@ Nur die PDF-Dokumentation neu erzeugen:
 python scripts\build_docs_pdf.py
 ```
 
+Englische PDF-Dokumentation einzeln erzeugen:
+
+```powershell
+python scripts\build_docs_pdf.py --source docs\enduser.en.md --output dist\PasteKeyboard-Guide.pdf --lang en --title "Paste Keyboard Guide"
+```
+
 ## Verifizierter Build im aktuellen Workspace
 
 Im aktuellen Workspace wurde der Build erfolgreich ausgefuehrt mit:
@@ -127,6 +137,7 @@ Verifiziert:
 
 - EXE wurde erzeugt: `dist\PasteKeyboard.exe`
 - PDF-Anleitung wurde erzeugt: `dist\PasteKeyboard-Anleitung.pdf`
+- englische PDF-Anleitung wurde erzeugt: `dist\PasteKeyboard-Guide.pdf`
 - EXE wurde mit einem lokal bereitgestellten Zertifikats-Thumbprint signiert
 - Signatur wurde mit `signtool verify /pa /v` erfolgreich geprueft
 - Zeitstempel wurde ueber `http://timestamp.digicert.com` gesetzt
@@ -138,14 +149,15 @@ Nach dem Build sollte mindestens geprueft werden:
 
 1. Startet die GUI?
 2. Startet `PasteKeyboard.exe --minimized` minimiert?
-3. Liegt `PasteKeyboard-Anleitung.pdf` neben der EXE in `dist` und laesst sich oeffnen?
+3. Liegen `PasteKeyboard-Anleitung.pdf` und `PasteKeyboard-Guide.pdf` neben der EXE in `dist` und lassen sie sich oeffnen?
 4. Verhindert die App eine zweite parallele Instanz?
 5. Laesst sich der globale Hotkey mit `Aufzeichnen` uebernehmen und speichern?
 6. Wird eine belegte Tastenkombination sichtbar abgelehnt, ohne das Feld zu blockieren?
 7. Funktioniert `Zwischenablage tippen` in Notepad?
 8. Greift das einstellbare Zwischenablage-Limit?
 9. Erscheint bei aktivierter Option nach Abschluss das lokale Popup unten rechts?
-10. Stimmen Layout-Auswahl und Sonderzeichenverhalten?
+10. Schaltet die Oberflaeche zwischen Deutsch und Englisch?
+11. Stimmen Layout-Auswahl und Sonderzeichenverhalten?
 
 ## Typische Stolperstellen
 
@@ -156,5 +168,6 @@ Nach dem Build sollte mindestens geprueft werden:
 - Manche Hotkeys sind bereits durch Windows oder andere Tools belegt.
 - Die Hotkey-Aufzeichnung liest den aktuellen physischen Tastenzustand; waehrend der Aufnahme ist das Feld readonly und der aktive globale Hotkey wird kurz pausiert.
 - Das Ziel-Layout in der VM muss zur Auswahl in der App passen.
+- App-Sprache und Ziel-Tastaturlayout sind getrennte Einstellungen.
 - PDF-Erzeugung benoetigt Edge oder Chrome im Standard-Installationspfad oder im `PATH`.
 - Falls Windows das Bearbeiten von EXE-Ressourcen blockiert, nutzt `scripts\build.ps1` automatisch einen PyInstaller-Fallback ohne kosmetische Resource-Updates.
