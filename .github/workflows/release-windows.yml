@@ -45,9 +45,18 @@ jobs:
         run: |
           $archive = "PasteKeyboard-windows.zip"
           Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
+          if (-not (Test-Path -LiteralPath "dist\PasteKeyboard.exe")) {
+            throw "Missing expected build output: dist\PasteKeyboard.exe"
+          }
+          if (-not (Test-Path -LiteralPath "dist\PasteKeyboard-Anleitung.pdf")) {
+            throw "Missing expected documentation output: dist\PasteKeyboard-Anleitung.pdf"
+          }
           Compress-Archive `
             -Path "dist\PasteKeyboard.exe", "dist\PasteKeyboard-Anleitung.pdf" `
             -DestinationPath $archive
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $archive)).Entries |
+            ForEach-Object { "{0} {1}" -f $_.FullName, $_.Length }
 
       - name: Upload asset to release
         env:
